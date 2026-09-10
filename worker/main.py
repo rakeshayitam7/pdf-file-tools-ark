@@ -7,11 +7,12 @@ from typing import Annotated
 
 import fitz
 from docx import Document
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 app = FastAPI(title="PDF & File Tools ARK Worker", version="1.0.0")
 MAX_FILE_BYTES = int(os.getenv("MAX_FILE_BYTES", str(100 * 1024 * 1024)))
+WORKER_API_KEY = os.getenv("FILE_WORKER_API_KEY", "")
 AUDIO_VIDEO = {"mp3-to-wav", "wav-to-mp3", "mp3-to-ogg", "audio-compress", "mp4-to-webm", "webm-to-mp4", "mp4-to-gif", "video-compress", "video-trim", "video-to-mp3"}
 OFFICE = {"word-to-pdf", "ppt-to-pdf", "excel-to-pdf", "pptx-to-images"}
 
@@ -61,7 +62,10 @@ async def process(
     duration: Annotated[str | None, Form()] = None,
     quality: Annotated[str | None, Form()] = None,
     html: Annotated[str | None, Form()] = None,
+    x_ark_worker_key: Annotated[str | None, Header()] = None,
 ):
+    if WORKER_API_KEY and x_ark_worker_key != WORKER_API_KEY:
+        raise HTTPException(401, "Unauthorized worker request.")
     if not files and action != "html-to-pdf":
         raise HTTPException(400, "At least one file is required.")
     with tempfile.TemporaryDirectory(prefix="ark-worker-") as tmp:
@@ -103,7 +107,11 @@ async def dispatch(action, inputs, root, signature, start, duration, quality, ht
                 outputs.append(out)
             if len(outputs) == 1:
                 return result(outputs[0], f"image/{ext}", outputs[0].name)
-            archive = Path(shutil.make_archive(str(root / f"pdf-pages-{ext}"), "zip", root_dir=root, base_dir="."))
+            slide_dir = root / "pages"
+            slide_dir.mkdir()
+            for out in outputs:
+                shutil.copy2(out, slide_dir / out.name)
+            archive = Path(shutil.make_archive(str(root / f"pdf-pages-{ext}"), "zip", root_dir=slide_dir))
             return result(archive, "application/zip", archive.name)
         if action == "compress-pdf":
             out = root / "compressed.pdf"
