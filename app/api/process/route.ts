@@ -1,0 +1,66 @@
+import { NextResponse } from 'next/server';
+import { PDFDocument, degrees, rgb, StandardFonts } from 'pdf-lib';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+function download(data: Uint8Array, filename: string, type = 'application/pdf') {
+  return new NextResponse(data as BodyInit, { headers: { 'Content-Type': type, 'Content-Disposition': `attachment; filename="${filename}"`, 'Cache-Control': 'no-store' } });
+}
+
+export async function POST(request: Request) {
+  try {
+    const form = await request.formData();
+    const action = String(form.get('action') || '');
+    const uploads = form.getAll('files').filter((x): x is File => x instanceof File);
+    if (!uploads.length) return NextResponse.json({ error: 'Please choose at least one file.' }, { status: 400 });
+
+    if (action === 'merge-pdf') {
+      const out = await PDFDocument.create();
+      for (const file of uploads) {
+        const src = await PDFDocument.load(await file.arrayBuffer());
+        const pages = await out.copyPages(src, src.getPageIndices());
+        pages.forEach(p => out.addPage(p));
+      }
+      return download(await out.save(), 'merged.pdf');
+    }
+
+    const src = await PDFDocument.load(await uploads[0].arrayBuffer());
+    const out = await PDFDocument.create();
+    let indices = src.getPageIndices();
+    if (action === 'delete-first-page') indices = indices.slice(1);
+    if (action === 'extract-pages') indices = indices.slice(0, Math.min(2, indices.length));
+    if (action === 'split-first-page') indices = indices.slice(0, 1);
+
+    if (action === 'rotate-pdf') {
+      const pages = await out.copyPages(src, indices);
+      pages.forEach(page => { page.setRotation(degrees((page.getRotation().angle + 90) % 360)); out.addPage(page); });
+      return download(await out.save(), 'rotated.pdf');
+    }
+
+    if (['delete-first-page','extract-pages','split-first-page'].includes(action)) {
+      const pages = await out.copyPages(src, indices); pages.forEach(p => out.addPage(p));
+      return download(await out.save(), action === 'split-first-page' ? 'split-page-1.pdf' : `${action}.pdf`);
+    }
+
+    if (action === 'watermark' || action === 'page-numbers') {
+      const font = await src.embedFont(StandardFonts.Helvetica);
+      for (const page of src.getPages()) {
+        const { width, height } = page.getSize();
+        if (action === 'watermark') page.drawText('PDF & File Tools ARK', { x: width / 2 - 70, y: height / 2, size: 18, font, color: rgb(0.35,0.35,0.35), opacity: 0.35, rotate: degrees(30) });
+        else page.drawText(`${src.getPages().indexOf(page) + 1}`, { x: width - 35, y: 18, size: 9, font, color: rgb(0.25,0.25,0.25) });
+      }
+      return download(await src.save(), action === 'watermark' ? 'watermarked.pdf' : 'numbered.pdf');
+    }
+
+    if (action === 'metadata') {
+      const body = JSON.stringify({ pages: src.getPageCount(), title: src.getTitle() || '', author: src.getAuthor() || '', subject: src.getSubject() || '', creator: src.getCreator() || '', producer: src.getProducer() || '' }, null, 2);
+      return download(new TextEncoder().encode(body), 'pdf-metadata.json', 'application/json');
+    }
+
+    return NextResponse.json({ error: 'This processor is not enabled yet.' }, { status: 422 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'The file could not be processed. Check that it is a valid supported file.' }, { status: 500 });
+  }
+}
