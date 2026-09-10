@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const WORKER_ACTIONS = new Set([
-  'compress-pdf', 'pdf-to-jpg', 'pdf-to-png', 'pdf-to-text', 'pdf-to-word',
+  'compress-pdf', 'pdf-to-jpg', 'pdf-to-png', 'pdf-to-text', 'pdf-to-word', 'ocr',
   'word-to-pdf', 'ppt-to-pdf', 'excel-to-pdf', 'html-to-pdf', 'pptx-to-images',
   'bank-statement-tools', 'electricity-bill-tools', 'food-nutrition-files', 'invoice-tools',
   'mp3-to-wav', 'wav-to-mp3', 'mp3-to-ogg', 'audio-compress',
