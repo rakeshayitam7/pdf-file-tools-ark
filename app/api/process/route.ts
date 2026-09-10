@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { PDFDocument, degrees, rgb, StandardFonts } from 'pdf-lib';
 import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
-import { forwardToWorker } from '@/lib/worker';
+import { forwardToWorker } from '../../../lib/worker';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     if (!uploads.length && action !== 'html-to-pdf') return NextResponse.json({ error: 'Please choose at least one file.' }, { status: 400 });
 
     if (WORKER_ACTIONS.has(action)) {
-      const worker = await forwardToWorker(form, action);
+      const worker = await forwardToWorker(form);
       if (!worker) return NextResponse.json({ error: 'This processing engine requires FILE_WORKER_URL on the server.' }, { status: 503 });
       if (!worker.ok) {
         const text = await worker.text(); let error = 'Worker processing failed.';
