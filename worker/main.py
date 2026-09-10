@@ -8,12 +8,14 @@ from pathlib import Path
 from typing import Annotated
 
 import fitz
+import pytesseract
+from PIL import Image
 from docx import Document
 from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 
-app = FastAPI(title="PDF & File Tools ARK Worker", version="1.1.0")
+app = FastAPI(title="PDF & File Tools ARK Worker", version="1.2.0")
 MAX_FILE_BYTES = int(os.getenv("MAX_FILE_BYTES", str(100 * 1024 * 1024)))
 WORKER_API_KEY = os.getenv("FILE_WORKER_API_KEY", "")
 AUDIO_VIDEO = {"mp3-to-wav", "wav-to-mp3", "mp3-to-ogg", "audio-compress", "mp4-to-webm", "webm-to-mp4", "mp4-to-gif", "video-compress", "video-trim", "video-to-mp3"}
@@ -60,22 +62,56 @@ def pdf_text(src: Path) -> str:
         doc.close()
 
 
+def ocr_image(src: Path) -> str:
+    with Image.open(src) as image:
+        image = image.convert("RGB")
+        return pytesseract.image_to_string(image, config="--psm 3")
+
+
+def ocr_document(src: Path, root: Path) -> str:
+    suffix = src.suffix.lower()
+    if suffix == ".pdf":
+        doc = fitz.open(src)
+        try:
+            chunks = []
+            for page in doc:
+                pix = page.get_pixmap(matrix=fitz.Matrix(1.8, 1.8), alpha=False)
+                image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                chunks.append(pytesseract.image_to_string(image, config="--psm 3"))
+            return "\n\n".join(chunks)
+        finally:
+            doc.close()
+    if suffix in {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}:
+        return ocr_image(src)
+    raise HTTPException(400, "OCR supports PDF, JPG, PNG, WEBP, BMP, TIF and TIFF files.")
+
+
 def extract_fields(text: str) -> dict:
     amounts = re.findall(r"(?:₹|Rs\.?|INR)\s*([0-9][0-9,]*(?:\.\d{1,2})?)", text, flags=re.I)
     dates = re.findall(r"\b(?:\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}[/-]\d{1,2}[/-]\d{1,2})\b", text)
     account = re.findall(r"(?:account(?:\s*(?:no|number))?|a/c)\s*[:#-]?\s*([Xx*\d][Xx*\d\s-]{3,})", text, flags=re.I)
     units = re.findall(r"\b(\d+(?:\.\d+)?)\s*(?:kWh|units?)\b", text, flags=re.I)
+    invoice_numbers = re.findall(r"(?:invoice|inv\.?)\s*(?:no|number|#)?\s*[:#-]?\s*([A-Z0-9][A-Z0-9/-]{2,})", text, flags=re.I)
+    tax_ids = re.findall(r"\b[A-Z0-9]{8,20}\b", text)
     nutrition = {}
-    for key in ("calories", "protein", "carbohydrates", "carbs", "fat", "fiber", "sugar"):
-        m = re.search(rf"{key}\s*[:=-]?\s*(\d+(?:\.\d+)?)\s*(kcal|g)?", text, flags=re.I)
+    for key in ("calories", "protein", "carbohydrates", "carbs", "fat", "fiber", "sugar", "sodium"):
+        m = re.search(rf"{key}\s*[:=-]?\s*(\d+(?:\.\d+)?)\s*(kcal|g|mg)?", text, flags=re.I)
         if m:
             nutrition[key] = {"value": float(m.group(1)), "unit": m.group(2) or ""}
-    return {"amounts": amounts[:100], "dates": dates[:100], "account_numbers": [x.strip() for x in account[:20]], "electricity_units": units[:50], "nutrition": nutrition}
+    return {
+        "amounts": amounts[:100],
+        "dates": dates[:100],
+        "account_numbers": [x.strip() for x in account[:20]],
+        "electricity_units": units[:50],
+        "invoice_numbers": invoice_numbers[:20],
+        "possible_tax_or_id_values": tax_ids[:50],
+        "nutrition": nutrition,
+    }
 
 
 @app.get("/health")
 def health():
-    return {"ok": True, "service": "ark-file-worker", "version": "1.1.0"}
+    return {"ok": True, "service": "ark-file-worker", "version": "1.2.0", "engines": ["pdf", "office", "ffmpeg", "ocr", "document-extractors"]}
 
 
 @app.post("/process")
@@ -103,6 +139,12 @@ async def process(
 
 
 async def dispatch(action, inputs, root, signature, start, duration, quality, html):
+    if action == "ocr":
+        text = ocr_document(inputs[0], root)
+        out = root / "ocr-result.txt"
+        out.write_text(text, encoding="utf-8")
+        return result(out, root, "text/plain; charset=utf-8", "ocr-result.txt")
+
     if action in {"pdf-to-jpg", "pdf-to-png", "pdf-to-text", "pdf-to-word", "compress-pdf"}:
         src = inputs[0]
         if action == "pdf-to-text":
