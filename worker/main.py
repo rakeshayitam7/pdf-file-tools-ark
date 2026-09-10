@@ -9,6 +9,7 @@ import fitz
 from docx import Document
 from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 
 app = FastAPI(title="PDF & File Tools ARK Worker", version="1.0.0")
 MAX_FILE_BYTES = int(os.getenv("MAX_FILE_BYTES", str(100 * 1024 * 1024)))
@@ -40,8 +41,8 @@ async def save_upload(upload: UploadFile, folder: Path, index: int) -> Path:
     return path
 
 
-def result(path: Path, media_type: str | None = None, filename: str | None = None):
-    return FileResponse(path, media_type=media_type, filename=filename or path.name, headers={"Cache-Control": "no-store"})
+def result(path: Path, root: Path, media_type: str | None = None, filename: str | None = None):
+    return FileResponse(path, media_type=media_type, filename=filename or path.name, headers={"Cache-Control": "no-store"}, background=BackgroundTask(shutil.rmtree, root, ignore_errors=True))
 
 
 def ffmpeg(input_path: Path, output_path: Path, args: list[str]):
@@ -68,10 +69,13 @@ async def process(
         raise HTTPException(401, "Unauthorized worker request.")
     if not files and action != "html-to-pdf":
         raise HTTPException(400, "At least one file is required.")
-    with tempfile.TemporaryDirectory(prefix="ark-worker-") as tmp:
-        root = Path(tmp)
+    root = Path(tempfile.mkdtemp(prefix="ark-worker-"))
+    try:
         inputs = [await save_upload(f, root / f"in{i}", i) for i, f in enumerate(files)]
         return await dispatch(action, inputs, root, signature, start, duration, quality, html)
+    except Exception:
+        shutil.rmtree(root, ignore_errors=True)
+        raise
 
 
 async def dispatch(action, inputs, root, signature, start, duration, quality, html):
@@ -82,7 +86,7 @@ async def dispatch(action, inputs, root, signature, start, duration, quality, ht
             text = "\n\n".join(page.get_text("text") for page in doc)
             out = root / "document.txt"
             out.write_text(text, encoding="utf-8")
-            return result(out, "text/plain; charset=utf-8", "document.txt")
+            return result(out, root, "text/plain; charset=utf-8", "document.txt")
         if action == "pdf-to-word":
             doc = fitz.open(src)
             out = root / "document.docx"
@@ -95,7 +99,7 @@ async def dispatch(action, inputs, root, signature, start, duration, quality, ht
                     if text:
                         word.add_paragraph(text)
             word.save(out)
-            return result(out, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "document.docx")
+            return result(out, root, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "document.docx")
         if action in {"pdf-to-jpg", "pdf-to-png"}:
             doc = fitz.open(src)
             ext = "jpg" if action == "pdf-to-jpg" else "png"
@@ -106,17 +110,17 @@ async def dispatch(action, inputs, root, signature, start, duration, quality, ht
                 pix.save(out)
                 outputs.append(out)
             if len(outputs) == 1:
-                return result(outputs[0], f"image/{ext}", outputs[0].name)
+                return result(outputs[0], root, f"image/{ext}", outputs[0].name)
             slide_dir = root / "pages"
             slide_dir.mkdir()
             for out in outputs:
                 shutil.copy2(out, slide_dir / out.name)
             archive = Path(shutil.make_archive(str(root / f"pdf-pages-{ext}"), "zip", root_dir=slide_dir))
-            return result(archive, "application/zip", archive.name)
+            return result(archive, root, "application/zip", archive.name)
         if action == "compress-pdf":
             out = root / "compressed.pdf"
             run(["qpdf", "--object-streams=generate", "--compress-streams=y", str(src), str(out)])
-            return result(out, "application/pdf", "compressed.pdf")
+            return result(out, root, "application/pdf", "compressed.pdf")
 
     if action in OFFICE:
         src = inputs[0]
@@ -134,8 +138,8 @@ async def dispatch(action, inputs, root, signature, start, duration, quality, ht
                 pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5), alpha=False)
                 pix.save(slide_dir / f"slide-{i+1}.png")
             archive = Path(shutil.make_archive(str(root / "slides"), "zip", root_dir=slide_dir))
-            return result(archive, "application/zip", "slides.zip")
-        return result(pdf, "application/pdf", "converted.pdf")
+            return result(archive, root, "application/zip", "slides.zip")
+        return result(pdf, root, "application/pdf", "converted.pdf")
 
     if action == "html-to-pdf":
         if not html:
@@ -148,7 +152,7 @@ async def dispatch(action, inputs, root, signature, start, duration, quality, ht
             await page.set_content(html, wait_until="networkidle")
             await page.pdf(path=str(out), format="A4", print_background=True)
             await browser.close()
-        return result(out, "application/pdf", "webpage.pdf")
+        return result(out, root, "application/pdf", "webpage.pdf")
 
     if action in AUDIO_VIDEO:
         src = inputs[0]
@@ -169,6 +173,6 @@ async def dispatch(action, inputs, root, signature, start, duration, quality, ht
             out, args = root / "audio.mp3", ["-vn", "-codec:a", "libmp3lame", "-b:a", "192k"]
         ffmpeg(src, out, args)
         mime = {".mp3":"audio/mpeg", ".wav":"audio/wav", ".ogg":"audio/ogg", ".mp4":"video/mp4", ".webm":"video/webm", ".gif":"image/gif"}.get(out.suffix, "application/octet-stream")
-        return result(out, mime, out.name)
+        return result(out, root, mime, out.name)
 
     raise HTTPException(422, f"Worker action not implemented: {action}")
