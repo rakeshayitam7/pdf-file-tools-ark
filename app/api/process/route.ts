@@ -25,6 +25,17 @@ export async function POST(request: Request) {
       return download(await out.save(), 'merged.pdf');
     }
 
+    if (action === 'jpg-to-pdf' || action === 'png-to-pdf') {
+      const out = await PDFDocument.create();
+      for (const file of uploads) {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const image = action === 'jpg-to-pdf' ? await out.embedJpg(bytes) : await out.embedPng(bytes);
+        const page = out.addPage([image.width, image.height]);
+        page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
+      }
+      return download(await out.save(), action === 'jpg-to-pdf' ? 'images-from-jpg.pdf' : 'images-from-png.pdf');
+    }
+
     const src = await PDFDocument.load(await uploads[0].arrayBuffer());
     const out = await PDFDocument.create();
     let indices = src.getPageIndices();
@@ -38,8 +49,9 @@ export async function POST(request: Request) {
       return download(await out.save(), 'rotated.pdf');
     }
 
-    if (['delete-first-page','extract-pages','split-first-page'].includes(action)) {
-      const pages = await out.copyPages(src, indices); pages.forEach(p => out.addPage(p));
+    if (['delete-first-page', 'extract-pages', 'split-first-page'].includes(action)) {
+      const pages = await out.copyPages(src, indices);
+      pages.forEach(p => out.addPage(p));
       return download(await out.save(), action === 'split-first-page' ? 'split-page-1.pdf' : `${action}.pdf`);
     }
 
@@ -47,10 +59,21 @@ export async function POST(request: Request) {
       const font = await src.embedFont(StandardFonts.Helvetica);
       for (const page of src.getPages()) {
         const { width, height } = page.getSize();
-        if (action === 'watermark') page.drawText('PDF & File Tools ARK', { x: width / 2 - 70, y: height / 2, size: 18, font, color: rgb(0.35,0.35,0.35), opacity: 0.35, rotate: degrees(30) });
-        else page.drawText(`${src.getPages().indexOf(page) + 1}`, { x: width - 35, y: 18, size: 9, font, color: rgb(0.25,0.25,0.25) });
+        if (action === 'watermark') page.drawText('PDF & File Tools ARK', { x: width / 2 - 70, y: height / 2, size: 18, font, color: rgb(0.35, 0.35, 0.35), opacity: 0.35, rotate: degrees(30) });
+        else page.drawText(`${src.getPages().indexOf(page) + 1}`, { x: width - 35, y: 18, size: 9, font, color: rgb(0.25, 0.25, 0.25) });
       }
       return download(await src.save(), action === 'watermark' ? 'watermarked.pdf' : 'numbered.pdf');
+    }
+
+    if (action === 'sign-pdf') {
+      const signature = String(form.get('signature') || '').trim();
+      if (!signature) return NextResponse.json({ error: 'Enter a signature name or text first.' }, { status: 400 });
+      const font = await src.embedFont(StandardFonts.HelveticaOblique);
+      for (const page of src.getPages()) {
+        const { height } = page.getSize();
+        page.drawText(signature, { x: 45, y: Math.max(45, height - 80), size: 18, font, color: rgb(0.1, 0.1, 0.1) });
+      }
+      return download(await src.save(), 'signed.pdf');
     }
 
     if (action === 'metadata') {
