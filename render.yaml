@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: ark-file-worker
+    runtime: docker
+    dockerfilePath: ./worker/Dockerfile
+    dockerContext: ./worker
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: FILE_WORKER_API_KEY
+        sync: false
+      - key: MAX_FILE_BYTES
+        value: "104857600"
