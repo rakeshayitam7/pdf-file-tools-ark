@@ -2,9 +2,17 @@ import { NextResponse } from 'next/server';
 import { PDFDocument, degrees, rgb, StandardFonts } from 'pdf-lib';
 import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
+import { forwardToWorker } from '@/lib/worker';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+const WORKER_ACTIONS = new Set([
+  'compress-pdf', 'pdf-to-jpg', 'pdf-to-png', 'pdf-to-text', 'pdf-to-word',
+  'word-to-pdf', 'ppt-to-pdf', 'excel-to-pdf', 'html-to-pdf', 'pptx-to-images',
+  'mp3-to-wav', 'wav-to-mp3', 'mp3-to-ogg', 'audio-compress',
+  'mp4-to-webm', 'webm-to-mp4', 'mp4-to-gif', 'video-compress', 'video-trim', 'video-to-mp3'
+]);
 
 function download(data: Uint8Array | Buffer, filename: string, type = 'application/pdf') {
   return new NextResponse(data as BodyInit, { headers: { 'Content-Type': type, 'Content-Disposition': `attachment; filename="${filename}"`, 'Cache-Control': 'no-store' } });
@@ -15,7 +23,21 @@ export async function POST(request: Request) {
     const form = await request.formData();
     const action = String(form.get('action') || '');
     const uploads = form.getAll('files').filter((x): x is File => x instanceof File);
-    if (!uploads.length) return NextResponse.json({ error: 'Please choose at least one file.' }, { status: 400 });
+    if (!uploads.length && action !== 'html-to-pdf') return NextResponse.json({ error: 'Please choose at least one file.' }, { status: 400 });
+
+    if (WORKER_ACTIONS.has(action)) {
+      const worker = await forwardToWorker(form);
+      if (!worker) {
+        return NextResponse.json({ error: 'This heavy processing engine is configured for the ARK worker, but FILE_WORKER_URL is not set on the server.' }, { status: 503 });
+      }
+      if (!worker.ok) {
+        const text = await worker.text();
+        let error = 'Worker processing failed.';
+        try { const body = JSON.parse(text); error = body.detail || body.error || error; } catch {}
+        return NextResponse.json({ error }, { status: worker.status >= 400 ? worker.status : 502 });
+      }
+      return new NextResponse(await worker.arrayBuffer(), { status: 200, headers: { 'Content-Type': worker.headers.get('content-type') || 'application/octet-stream', 'Content-Disposition': worker.headers.get('content-disposition') || 'attachment', 'Cache-Control': 'no-store' } });
+    }
 
     if (action === 'merge-pdf') {
       const out = await PDFDocument.create();
