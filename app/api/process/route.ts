@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { PDFDocument, degrees, rgb, StandardFonts } from 'pdf-lib';
+import mammoth from 'mammoth';
+import * as XLSX from 'xlsx';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-function download(data: Uint8Array, filename: string, type = 'application/pdf') {
+function download(data: Uint8Array | Buffer, filename: string, type = 'application/pdf') {
   return new NextResponse(data as BodyInit, { headers: { 'Content-Type': type, 'Content-Disposition': `attachment; filename="${filename}"`, 'Cache-Control': 'no-store' } });
 }
 
@@ -27,13 +29,50 @@ export async function POST(request: Request) {
 
     if (action === 'jpg-to-pdf' || action === 'png-to-pdf') {
       const out = await PDFDocument.create();
-      for (const file of uploads) {
+      const expected = action === 'jpg-to-pdf' ? ['.jpg', '.jpeg'] : ['.png'];
+      const valid = uploads.filter(f => expected.some(ext => f.name.toLowerCase().endsWith(ext)));
+      if (!valid.length) return NextResponse.json({ error: `Choose ${action === 'jpg-to-pdf' ? 'JPG/JPEG' : 'PNG'} images.` }, { status: 400 });
+      for (const file of valid) {
         const bytes = new Uint8Array(await file.arrayBuffer());
         const image = action === 'jpg-to-pdf' ? await out.embedJpg(bytes) : await out.embedPng(bytes);
         const page = out.addPage([image.width, image.height]);
         page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
       }
       return download(await out.save(), action === 'jpg-to-pdf' ? 'images-from-jpg.pdf' : 'images-from-png.pdf');
+    }
+
+    if (action === 'txt-to-pdf') {
+      const text = await uploads[0].text();
+      const out = await PDFDocument.create();
+      const font = await out.embedFont(StandardFonts.Helvetica);
+      const margin = 45, size = 10, lineHeight = 14;
+      let page = out.addPage(); let y = page.getHeight() - margin;
+      for (const line of text.replace(/\r/g, '').split('\n')) {
+        const chunks = line.match(/.{1,105}/g) || [''];
+        for (const chunk of chunks) {
+          if (y < margin) { page = out.addPage(); y = page.getHeight() - margin; }
+          page.drawText(chunk, { x: margin, y, size, font }); y -= lineHeight;
+        }
+      }
+      return download(await out.save(), 'text-document.pdf');
+    }
+
+    if (action === 'docx-to-txt') {
+      const result = await mammoth.extractRawText({ buffer: Buffer.from(await uploads[0].arrayBuffer()) });
+      return download(new TextEncoder().encode(result.value), 'document.txt', 'text/plain; charset=utf-8');
+    }
+
+    if (action === 'csv-to-xlsx') {
+      const csv = await uploads[0].text();
+      const workbook = XLSX.read(csv, { type: 'string' });
+      return download(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }), 'converted.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    }
+
+    if (action === 'xlsx-to-csv') {
+      const workbook = XLSX.read(Buffer.from(await uploads[0].arrayBuffer()), { type: 'buffer' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const csv = XLSX.utils.sheet_to_csv(sheet);
+      return download(new TextEncoder().encode(csv), 'converted.csv', 'text/csv; charset=utf-8');
     }
 
     const src = await PDFDocument.load(await uploads[0].arrayBuffer());
@@ -69,10 +108,7 @@ export async function POST(request: Request) {
       const signature = String(form.get('signature') || '').trim();
       if (!signature) return NextResponse.json({ error: 'Enter a signature name or text first.' }, { status: 400 });
       const font = await src.embedFont(StandardFonts.HelveticaOblique);
-      for (const page of src.getPages()) {
-        const { height } = page.getSize();
-        page.drawText(signature, { x: 45, y: Math.max(45, height - 80), size: 18, font, color: rgb(0.1, 0.1, 0.1) });
-      }
+      for (const page of src.getPages()) page.drawText(signature.slice(0, 80), { x: 45, y: 45, size: 18, font, color: rgb(0.1, 0.1, 0.1) });
       return download(await src.save(), 'signed.pdf');
     }
 
