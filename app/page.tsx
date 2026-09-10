@@ -18,7 +18,7 @@ export default function Home(){
  const [signature,setSignature]=useState(''); const [width,setWidth]=useState(''); const [height,setHeight]=useState(''); const [left,setLeft]=useState('0'); const [top,setTop]=useState('0'); const [quality,setQuality]=useState('82');
  const all=sections.flatMap(x=>x[2]); const filtered=useMemo(()=>all.filter(t=>(t.name+' '+t.desc+' '+t.kind).toLowerCase().includes(query.toLowerCase())),[query]);
  function openTool(t:Tool){setActive(t);setFiles([]);setMessage('');setSignature('');setWidth('');setHeight('');setLeft('0');setTop('0');setQuality('82')}
- function accept(){if(!active)return undefined;if(active.action==='merge-pdf'||active.action==='jpg-to-pdf'||active.action==='png-to-pdf')return active.action==='merge-pdf'?'.pdf':'image/jpeg,image/png,image/webp';if(active.kind==='Image')return 'image/*';return '.pdf'}
+ function accept(){if(!active)return undefined;if(active.action==='merge-pdf')return '.pdf';if(active.action==='jpg-to-pdf')return 'image/jpeg';if(active.action==='png-to-pdf')return 'image/png';if(active.kind==='Image')return 'image/*';return '.pdf'}
  async function process(){
   if(!active||!files.length)return setMessage('Choose a file first.');
   if(active.action==='coming')return setMessage('This tool is registered. Its dedicated processing engine will be connected next — no fake conversion.');
