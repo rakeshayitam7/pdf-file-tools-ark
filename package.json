@@ -9,11 +9,13 @@
   },
   "dependencies": {
     "@vercel/blob": "latest",
+    "mammoth": "latest",
     "next": "latest",
     "pdf-lib": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "sharp": "latest"
+    "sharp": "latest",
+    "xlsx": "latest"
   },
   "devDependencies": {
     "typescript": "latest",
