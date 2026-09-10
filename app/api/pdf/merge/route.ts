@@ -1,0 +1,4 @@
+import { PDFDocument } from 'pdf-lib'
+import { NextResponse } from 'next/server'
+export const runtime='nodejs'
+export async function POST(req:Request){try{const form=await req.formData();const files=form.getAll('files').filter((x):x is File=>x instanceof File);if(files.length<2)return NextResponse.json({error:'Upload at least two PDF files.'},{status:400});const out=await PDFDocument.create();for(const file of files){const src=await PDFDocument.load(await file.arrayBuffer());const pages=await out.copyPages(src,src.getPageIndices());pages.forEach(p=>out.addPage(p))}const bytes=await out.save();return new NextResponse(Buffer.from(bytes),{headers:{'Content-Type':'application/pdf','Content-Disposition':'attachment; filename="merged.pdf"'}})}catch(e){return NextResponse.json({error:'Could not merge the PDFs. Check that each file is a valid PDF.'},{status:400})}}
