@@ -2,13 +2,16 @@ FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PORT=8080
+    PORT=8080 \
+    TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libreoffice \
     poppler-utils \
     qpdf \
+    tesseract-ocr \
+    tesseract-ocr-eng \
     curl \
     ca-certificates \
     fonts-dejavu \
