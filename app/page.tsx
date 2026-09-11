@@ -2,258 +2,48 @@
 
 import { useMemo, useState, useEffect } from 'react'
 
-type Tool = {
-  name: string
-  desc: string
-  action: string
-  category: string
-  kind: string
-  ready: boolean
-  tag?: string
-}
+type Tool={name:string;desc:string;action:string;category:string;kind:string;ready:boolean;tag?:string}
+const readyActions=new Set(['merge-pdf','split-first-page','rotate-pdf','delete-first-page','extract-pages','watermark','page-numbers','metadata','compress-pdf','pdf-to-jpg','pdf-to-png','jpg-to-pdf','png-to-pdf','pdf-to-text','pdf-to-word','word-to-pdf','ppt-to-pdf','excel-to-pdf','html-to-pdf','ocr','sign-pdf','png','jpg','webp','compress','resize','crop','mp3-to-wav','wav-to-mp3','mp3-to-ogg','audio-compress','mp4-to-webm','webm-to-mp4','mp4-to-gif','video-compress','video-trim','video-to-mp3','docx-to-txt','txt-to-pdf','csv-to-xlsx','xlsx-to-csv','pptx-to-images','bank-statement-tools','electricity-bill-tools','food-nutrition-files','invoice-tools'])
+const d=(name:string,desc:string,action:string,category:string,kind='Document',tag?:string):Tool=>({name,desc,action,category,kind,ready:readyActions.has(action),tag})
 
-const readyActions = new Set([
-  'merge-pdf','split-first-page','rotate-pdf','delete-first-page','extract-pages','watermark','page-numbers','metadata','compress-pdf',
-  'pdf-to-jpg','pdf-to-png','jpg-to-pdf','png-to-pdf','pdf-to-text','pdf-to-word','word-to-pdf','ppt-to-pdf','excel-to-pdf','html-to-pdf','ocr','sign-pdf',
-  'png','jpg','webp','compress','resize','crop','mp3-to-wav','wav-to-mp3','mp3-to-ogg','audio-compress','mp4-to-webm','webm-to-mp4','mp4-to-gif','video-compress','video-trim','video-to-mp3',
-  'docx-to-txt','txt-to-pdf','csv-to-xlsx','xlsx-to-csv','pptx-to-images','bank-statement-tools','electricity-bill-tools','food-nutrition-files','invoice-tools'
-])
-
-const d = (name:string, desc:string, action:string, category:string, kind='PDF', tag?:string):Tool => ({ name, desc, action, category, kind, ready:readyActions.has(action), tag })
-
-const tools: Tool[] = [
-  d('Merge PDF','Combine multiple PDFs into one document.','merge-pdf','WORKFLOWS','PDF','Popular'),
-  d('Split PDF','Separate a PDF into smaller documents.','split-first-page','ORGANIZE PDF'),
-  d('Organize PDF','Reorder pages into the right sequence.','organize-pdf','ORGANIZE PDF'),
-  d('Rotate PDF','Rotate PDF pages with a single action.','rotate-pdf','ORGANIZE PDF'),
-  d('Delete PDF Pages','Remove unwanted pages from a PDF.','delete-first-page','ORGANIZE PDF'),
-  d('Extract PDF Pages','Pull selected pages into a new PDF.','extract-pages','ORGANIZE PDF'),
-  d('Add PDF Pages','Insert pages into an existing document.','add-pages','ORGANIZE PDF'),
-  d('Rearrange PDF Pages','Drag pages into a new order.','rearrange-pages','ORGANIZE PDF'),
-  d('Duplicate PDF Pages','Duplicate selected PDF pages.','duplicate-pages','ORGANIZE PDF'),
-  d('Crop PDF','Trim page boundaries to your selection.','crop-pdf','ORGANIZE PDF'),
-  d('Page Numbers','Add numbered footers to PDF pages.','page-numbers','ORGANIZE PDF'),
-  d('Compress PDF','Reduce file size while preserving usability.','compress-pdf','OPTIMIZE PDF','PDF','Popular'),
-  d('Repair PDF','Attempt to recover damaged PDF structure.','repair-pdf','OPTIMIZE PDF'),
-  d('Flatten PDF','Flatten interactive content into a static PDF.','flatten-pdf','OPTIMIZE PDF'),
-  d('Optimize PDF','Optimize document structure and assets.','optimize-pdf','OPTIMIZE PDF'),
-  d('Fast Web View PDF','Linearize a PDF for faster web delivery.','linearize-pdf','OPTIMIZE PDF'),
-  d('PDF to Word','Transform PDF content into a DOCX document.','pdf-to-word','CONVERT PDF','PDF','Popular'),
-  d('Word to PDF','Convert Word documents into PDF.','word-to-pdf','CONVERT PDF'),
-  d('PDF to Excel','Transform PDF data into spreadsheet content.','pdf-to-excel','CONVERT PDF'),
-  d('Excel to PDF','Convert spreadsheets into PDF.','excel-to-pdf','CONVERT PDF'),
-  d('PDF to PowerPoint','Transform PDF pages into presentation slides.','pdf-to-ppt','CONVERT PDF'),
-  d('PowerPoint to PDF','Combine presentation slides into a PDF.','ppt-to-pdf','CONVERT PDF'),
-  d('PDF to JPG','Render PDF pages as JPG images.','pdf-to-jpg','CONVERT PDF'),
-  d('JPG to PDF','Place images into a PDF document.','jpg-to-pdf','CONVERT PDF'),
-  d('PDF to PNG','Render PDF pages as PNG images.','pdf-to-png','CONVERT PDF'),
-  d('PNG to PDF','Place PNG images into a PDF.','png-to-pdf','CONVERT PDF'),
-  d('HTML to PDF','Render HTML into PDF.','html-to-pdf','CONVERT PDF'),
-  d('PDF to Text','Extract selectable text from PDFs.','pdf-to-text','CONVERT PDF'),
-  d('Text to PDF','Create a PDF from plain text.','txt-to-pdf','CONVERT PDF'),
-  d('Edit PDF','Edit PDF content and elements.','edit-pdf','EDIT PDF'),
-  d('Add Text to PDF','Place new text on a PDF page.','add-text-pdf','EDIT PDF'),
-  d('Add Image to PDF','Insert images into PDF pages.','add-image-pdf','EDIT PDF'),
-  d('Annotate PDF','Add notes and annotations.','annotate-pdf','EDIT PDF'),
-  d('Highlight PDF','Highlight important document text.','highlight-pdf','EDIT PDF'),
-  d('Add Shapes','Add boxes, circles and other shapes.','add-shapes-pdf','EDIT PDF'),
-  d('Fill PDF Forms','Fill existing PDF form fields.','fill-pdf-forms','EDIT PDF'),
-  d('Protect PDF','Secure a document with password protection.','protect-pdf','PDF SECURITY','PDF','Security'),
-  d('Unlock PDF','Remove PDF password protection when permitted.','unlock-pdf','PDF SECURITY'),
-  d('Sign PDF','Add a signature to PDF pages.','sign-pdf','PDF SECURITY'),
-  d('Request Signature','Prepare a PDF for signature collection.','request-signature','PDF SECURITY'),
-  d('Watermark PDF','Stamp a visible watermark over PDF pages.','watermark','PDF SECURITY'),
-  d('Redact PDF','Cover sensitive information permanently.','redact-pdf','PDF SECURITY'),
-  d('Remove Metadata','Remove document metadata.','remove-metadata','PDF SECURITY'),
-  d('OCR PDF','Turn scanned documents into selectable text.','ocr','PDF INTELLIGENCE','PDF','AI'),
-  d('AI Summarize PDF','Create a concise summary of a document.','ai-summarize-pdf','PDF INTELLIGENCE','AI','AI'),
-  d('Translate PDF','Translate document text between languages.','translate-pdf','PDF INTELLIGENCE'),
-  d('Ask Questions About PDF','Ask questions against extracted document content.','ask-pdf','PDF INTELLIGENCE','AI'),
-  d('Extract Text','Extract structured text from documents.','pdf-to-text','PDF INTELLIGENCE'),
-  d('Extract Images','Extract embedded images from PDFs.','extract-images','PDF INTELLIGENCE'),
-  d('Extract Tables','Detect and extract document tables.','extract-tables','PDF INTELLIGENCE'),
-  d('Compare PDF','Compare two PDFs and surface differences.','compare-pdf','PDF INTELLIGENCE'),
-  d('Compress Image','Compress images with adjustable quality.','compress','IMAGE TOOLS','Image'),
-  d('Resize Image','Resize images without unwanted enlargement.','resize','IMAGE TOOLS','Image'),
-  d('Convert JPG / PNG / WebP','Convert between common image formats.','jpg','IMAGE TOOLS','Image'),
-  d('Image to PDF','Place images into a PDF.','jpg-to-pdf','IMAGE TOOLS','Image'),
-  d('PDF Pages to Images','Render PDF pages as images.','pdf-to-jpg','IMAGE TOOLS','Image'),
-  d('DOCX to TXT','Extract text from Word files.','docx-to-txt','DOCUMENT TOOLS','File'),
-  d('TXT to PDF','Create PDF from plain text.','txt-to-pdf','DOCUMENT TOOLS','File'),
-  d('CSV to XLSX','Convert CSV data to Excel.','csv-to-xlsx','DOCUMENT TOOLS','File'),
-  d('XLSX to CSV','Convert Excel sheets to CSV.','xlsx-to-csv','DOCUMENT TOOLS','File'),
-  d('PPTX to Images','Render presentation slides as PNG images.','pptx-to-images','DOCUMENT TOOLS','File'),
-  d('Bank Statement Extractor','Extract dates, amounts and account fields.','bank-statement-tools','DOCUMENT TOOLS','File'),
-  d('Electricity Bill Extractor','Extract bill dates, amounts and usage.','electricity-bill-tools','DOCUMENT TOOLS','File'),
-  d('Food & Nutrition Extractor','Extract nutrition values from food documents.','food-nutrition-files','DOCUMENT TOOLS','File'),
-  d('Invoice Extractor','Extract invoice text, dates and amounts.','invoice-tools','DOCUMENT TOOLS','File'),
-  d('ZIP Files','Bundle files into a ZIP archive.','zip-files','FILE UTILITIES','File'),
-  d('Unzip Files','Extract files from ZIP archives.','unzip-files','FILE UTILITIES','File'),
-  d('Generate QR Code','Create a QR code from text or a URL.','qr-code','FILE UTILITIES','File'),
-  d('Base64 Encode / Decode','Encode or decode file and text data.','base64','FILE UTILITIES','File'),
-  d('MP3 to WAV','Convert audio using FFmpeg.','mp3-to-wav','MEDIA','Audio'),
-  d('WAV to MP3','Convert audio using FFmpeg.','wav-to-mp3','MEDIA','Audio'),
-  d('MP3 to OGG','Convert audio using FFmpeg.','mp3-to-ogg','MEDIA','Audio'),
-  d('Audio Compress','Reduce audio file size with FFmpeg.','audio-compress','MEDIA','Audio'),
-  d('MP4 to WebM','Convert video using FFmpeg.','mp4-to-webm','MEDIA','Video'),
-  d('WebM to MP4','Convert video using FFmpeg.','webm-to-mp4','MEDIA','Video'),
-  d('MP4 to GIF','Create an animated GIF from video.','mp4-to-gif','MEDIA','Video'),
-  d('Video Compress','Reduce video size with FFmpeg.','video-compress','MEDIA','Video'),
-  d('Video Trim','Trim a video by start time and duration.','video-trim','MEDIA','Video'),
-  d('Video to MP3','Extract audio from a video.','video-to-mp3','MEDIA','Video')
+const tools:Tool[]=[
+ d('Merge PDF','Combine multiple PDFs into one document.','merge-pdf','PDF & DOCUMENTS','PDF','Popular'),d('Split PDF','Separate a PDF into smaller documents.','split-first-page','PDF & DOCUMENTS'),d('Organize PDF','Reorder pages into the right sequence.','organize-pdf','PDF & DOCUMENTS'),d('Rotate PDF','Rotate PDF pages with one action.','rotate-pdf','PDF & DOCUMENTS'),d('Delete PDF Pages','Remove unwanted pages.','delete-first-page','PDF & DOCUMENTS'),d('Extract PDF Pages','Pull selected pages into a new PDF.','extract-pages','PDF & DOCUMENTS'),d('Add PDF Pages','Insert pages into an existing document.','add-pages','PDF & DOCUMENTS'),d('Rearrange PDF Pages','Drag pages into a new order.','rearrange-pages','PDF & DOCUMENTS'),d('Duplicate PDF Pages','Duplicate selected pages.','duplicate-pages','PDF & DOCUMENTS'),d('Crop PDF','Trim page boundaries.','crop-pdf','PDF & DOCUMENTS'),d('Page Numbers','Add numbered footers.','page-numbers','PDF & DOCUMENTS'),d('Compress PDF','Reduce file size.','compress-pdf','PDF & DOCUMENTS','PDF','Popular'),d('Repair PDF','Attempt to recover damaged structure.','repair-pdf','PDF & DOCUMENTS'),d('Flatten PDF','Flatten interactive content.','flatten-pdf','PDF & DOCUMENTS'),d('Optimize PDF','Optimize document structure.','optimize-pdf','PDF & DOCUMENTS'),d('Fast Web View PDF','Prepare PDFs for faster web delivery.','linearize-pdf','PDF & DOCUMENTS'),
+ d('PDF to Word','Transform PDF into DOCX.','pdf-to-word','PDF & DOCUMENTS','Word','Popular'),d('Word to PDF','Convert Word documents into PDF.','word-to-pdf','PDF & DOCUMENTS','Word'),d('PDF to Excel','Transform PDF data into spreadsheet content.','pdf-to-excel','PDF & DOCUMENTS','Excel'),d('Excel to PDF','Convert spreadsheets into PDF.','excel-to-pdf','PDF & DOCUMENTS','Excel'),d('PDF to PowerPoint','Transform PDF pages into slides.','pdf-to-ppt','PDF & DOCUMENTS','PPTX'),d('PowerPoint to PDF','Convert presentations into PDF.','ppt-to-pdf','PDF & DOCUMENTS','PPTX'),d('PDF to JPG','Render PDF pages as JPG.','pdf-to-jpg','PDF & DOCUMENTS','PDF'),d('JPG to PDF','Place images into a PDF.','jpg-to-pdf','PDF & DOCUMENTS','Image'),d('PDF to PNG','Render PDF pages as PNG.','pdf-to-png','PDF & DOCUMENTS','PDF'),d('PNG to PDF','Place PNG images into PDF.','png-to-pdf','PDF & DOCUMENTS','Image'),d('HTML to PDF','Render HTML into PDF.','html-to-pdf','PDF & DOCUMENTS','HTML'),d('PDF to Text','Extract selectable text.','pdf-to-text','PDF & DOCUMENTS','Text'),d('Text to PDF','Create a PDF from plain text.','txt-to-pdf','PDF & DOCUMENTS','Text'),
+ d('Edit PDF','Edit PDF content and elements.','edit-pdf','PDF & DOCUMENTS'),d('Add Text to PDF','Place new text on a PDF.','add-text-pdf','PDF & DOCUMENTS'),d('Add Image to PDF','Insert images into PDF pages.','add-image-pdf','PDF & DOCUMENTS'),d('Annotate PDF','Add notes and annotations.','annotate-pdf','PDF & DOCUMENTS'),d('Highlight PDF','Highlight important text.','highlight-pdf','PDF & DOCUMENTS'),d('Add Shapes','Add boxes, circles and shapes.','add-shapes-pdf','PDF & DOCUMENTS'),d('Fill PDF Forms','Fill existing PDF form fields.','fill-pdf-forms','PDF & DOCUMENTS'),
+ d('Protect PDF','Secure a document with a password.','protect-pdf','PDF & DOCUMENTS','PDF','Security'),d('Unlock PDF','Remove PDF password protection when permitted.','unlock-pdf','PDF & DOCUMENTS'),d('Sign PDF','Add a signature to PDF pages.','sign-pdf','PDF & DOCUMENTS'),d('Request Signature','Prepare a PDF for signature collection.','request-signature','PDF & DOCUMENTS'),d('Watermark PDF','Stamp a visible watermark.','watermark','PDF & DOCUMENTS'),d('Redact PDF','Cover sensitive information permanently.','redact-pdf','PDF & DOCUMENTS'),d('Remove Metadata','Remove document metadata.','remove-metadata','PDF & DOCUMENTS'),d('OCR PDF','Turn scans into selectable text.','ocr','PDF & DOCUMENTS','PDF','OCR'),d('AI Summarize PDF','Create a concise summary.','ai-summarize-pdf','PDF & DOCUMENTS','AI','AI'),d('Translate PDF','Translate document text.','translate-pdf','PDF & DOCUMENTS'),d('Ask Questions About PDF','Ask questions against document content.','ask-pdf','PDF & DOCUMENTS','AI'),d('Extract Text','Extract structured text.','pdf-to-text','PDF & DOCUMENTS','Text'),d('Extract Images','Extract embedded PDF images.','extract-images','PDF & DOCUMENTS','Image'),d('Extract Tables','Detect and extract document tables.','extract-tables','PDF & DOCUMENTS'),d('Compare PDF','Compare two PDFs.','compare-pdf','PDF & DOCUMENTS'),
+ d('Compress Image','Compress images with quality control.','compress','IMAGES','Image'),d('Resize Image','Resize images.','resize','IMAGES','Image'),d('Crop Image','Crop images.','crop','IMAGES','Image'),d('Convert JPG / PNG / WebP','Convert common image formats.','jpg','IMAGES','Image'),d('Image to PDF','Place images into a PDF.','jpg-to-pdf','IMAGES','Image'),d('PDF Pages to Images','Render PDF pages as images.','pdf-to-jpg','IMAGES','Image'),
+ d('DOCX to TXT','Extract text from Word files.','docx-to-txt','OTHER DOCUMENTS','Word'),d('TXT to PDF','Create PDF from text.','txt-to-pdf','OTHER DOCUMENTS','Text'),d('CSV to XLSX','Convert CSV data to Excel.','csv-to-xlsx','OTHER DOCUMENTS','Excel'),d('XLSX to CSV','Convert Excel sheets to CSV.','xlsx-to-csv','OTHER DOCUMENTS','Excel'),d('PPTX to Images','Render presentation slides as PNG.','pptx-to-images','OTHER DOCUMENTS','PPTX'),
+ d('Bank Statement Extractor','Extract dates, amounts and account fields.','bank-statement-tools','FINANCE & DATA','Finance'),d('Electricity Bill Extractor','Extract bill dates, amounts and usage.','electricity-bill-tools','FINANCE & DATA','Finance'),d('Food & Nutrition Extractor','Extract nutrition values.','food-nutrition-files','FINANCE & DATA','Data'),d('Invoice Extractor','Extract invoice text, dates and amounts.','invoice-tools','FINANCE & DATA','Finance'),
+ d('ZIP Files','Bundle files into a ZIP archive.','zip-files','FILE UTILITIES','File'),d('Unzip Files','Extract files from ZIP archives.','unzip-files','FILE UTILITIES','File'),d('Generate QR Code','Create a QR code.','qr-code','FILE UTILITIES','File'),d('Base64 Encode / Decode','Encode or decode data.','base64','FILE UTILITIES','File'),
+ d('MP3 to WAV','Convert audio.','mp3-to-wav','AUDIO','Audio'),d('WAV to MP3','Convert audio.','wav-to-mp3','AUDIO','Audio'),d('MP3 to OGG','Convert audio.','mp3-to-ogg','AUDIO','Audio'),d('Audio Compress','Reduce audio size.','audio-compress','AUDIO','Audio'),
+ d('MP4 to WebM','Convert video.','mp4-to-webm','VIDEO','Video'),d('WebM to MP4','Convert video.','webm-to-mp4','VIDEO','Video'),d('MP4 to GIF','Create an animated GIF.','mp4-to-gif','VIDEO','Video'),d('Video Compress','Reduce video size.','video-compress','VIDEO','Video'),d('Video Trim','Trim by start and duration.','video-trim','VIDEO','Video'),d('Video to MP3','Extract audio from video.','video-to-mp3','VIDEO','Video')
 ]
+const categories=['ALL','PDF & DOCUMENTS','OTHER DOCUMENTS','IMAGES','VIDEO','AUDIO','FINANCE & DATA','FILE UTILITIES']
 
-const categories=['ALL','WORKFLOWS','ORGANIZE PDF','OPTIMIZE PDF','CONVERT PDF','EDIT PDF','PDF SECURITY','PDF INTELLIGENCE','IMAGE TOOLS','DOCUMENT TOOLS','FILE UTILITIES','MEDIA']
-
-function Icon({t}:{t:Tool}) {
-  const a=t.action
-  let mode='doc'
-  if(/merge|add-pages|duplicate/.test(a)) mode='merge'
-  else if(/split|delete|extract|rearrange/.test(a)) mode='split'
-  else if(/compress/.test(a)) mode='compress'
-  else if(/rotate/.test(a)) mode='rotate'
-  else if(/ocr|text/.test(a)) mode='ocr'
-  else if(/watermark/.test(a)) mode='watermark'
-  else if(/sign/.test(a)) mode='sign'
-  else if(/protect|unlock|redact/.test(a)) mode='security'
-  else if(/jpg|png|webp|image/.test(a)) mode='image'
-  else if(/word|docx/.test(a)) mode='word'
-  else if(/excel|csv|xlsx/.test(a)) mode='sheet'
-  else if(/ppt/.test(a)) mode='slides'
-  else if(/video|mp4|webm|gif/.test(a)) mode='video'
-  else if(/audio|mp3|wav|ogg/.test(a)) mode='audio'
-  else if(/ai|ask|summary|translate/.test(a)) mode='ai'
-
-  return (
-    <svg className={'toolSvg '+mode} viewBox="0 0 72 72" aria-hidden="true">
-      <rect x="15" y="9" width="31" height="43" rx="5"/>
-      <path d="M24 20h14M24 28h12M24 36h9"/>
-      <path className="accentLine" d="M46 19h8v34H30"/>
-      {mode==='merge' && <><path d="M8 19h10M54 19l10 10M8 50h10"/><path className="arrow" d="M12 24l8-5-8-5M60 29l-6-7 7-4"/></>}
-      {mode==='split' && <path className="arrow" d="M30 31l-13-9M30 31l-13 15M42 31l13-9M42 31l13 15"/>}
-      {mode==='compress' && <path className="arrow" d="M7 31h15M15 25l7 6-7 6M65 31H50M57 25l-7 6 7 6"/>}
-      {mode==='rotate' && <path className="arrow" d="M56 24a20 20 0 1 0 2 18M58 24l-8 1 5 6"/>}
-      {mode==='security' && <path d="M51 30v-8a8 8 0 0 0-16 0v8M31 30h24v22H31z"/>}
-      {mode==='sign' && <path d="M20 45c9-11 14 9 26-6 5-6 8 0 12-7M23 50h31"/>}
-      {mode==='watermark' && <text x="18" y="43" fontSize="8" transform="rotate(-25 18 43)">STAMP</text>}
-      {mode==='ocr' && <path d="M20 48h24M20 44h8M34 44h10M20 40h24"/>}
-      {mode==='image' && <><rect x="50" y="22" width="17" height="17" rx="3"/><path d="M52 35l5-6 4 4 3-3"/></>}
-      {mode==='word' && <text x="51" y="35" fontSize="9" fontWeight="800">DOC</text>}
-      {mode==='sheet' && <><rect x="49" y="21" width="18" height="20"/><path d="M49 28h18M49 35h18M55 21v20M61 21v20"/></>}
-      {mode==='slides' && <><rect x="49" y="22" width="19" height="15" rx="2"/><path d="M53 42h11"/></>}
-      {mode==='ai' && <path className="spark" d="M56 18l2 7 7 2-7 2-2 7-2-7-7-2 7-2z"/>}
-      {mode==='video' && <path d="M50 25l15 9-15 9z"/>}
-      {mode==='audio' && <path d="M51 31h5l6-6v20l-6-6h-5z"/>}
-    </svg>
-  )
+function PaperIcon({t}:{t:Tool}){
+ const a=t.action; let mode='sheet';
+ if(/merge|add-pages|duplicate/.test(a))mode='flower'; else if(/split|extract|delete|rearrange/.test(a))mode='boat'; else if(/compress|resize/.test(a))mode='cube'; else if(/rotate/.test(a))mode='wind'; else if(/video|mp4|webm|gif/.test(a))mode='film'; else if(/audio|mp3|wav|ogg/.test(a))mode='sound'; else if(/word|docx/.test(a))mode='word'; else if(/excel|csv|xlsx/.test(a))mode='sheet'; else if(/ppt/.test(a))mode='fold'; else if(/security|protect|unlock|sign|watermark/.test(a))mode='seal';
+ return <svg className={'paperIcon '+mode} viewBox="0 0 80 80" aria-hidden="true"><path className="paperBack" d="M17 10h35l12 12v45H17z"/><path className="paperFold" d="M52 10v13h12"/><path className="paperLine" d="M27 34h25M27 43h19M27 52h14"/>{mode==='flower'&&<><circle cx="56" cy="48" r="5"/><circle cx="56" cy="38" r="6"/><circle cx="47" cy="43" r="6"/><circle cx="65" cy="43" r="6"/><path d="M56 53v13"/></>}{mode==='boat'&&<path d="M27 51l18 12 18-12-5 12H32z"/>}{mode==='cube'&&<path d="M42 31l14 8v16l-14 8-14-8V39zM42 31v16M28 39l14 8 14-8"/>}{mode==='wind'&&<path d="M28 56a19 19 0 1 1 27-19M55 37l-2-9 9 3"/>}{mode==='word'&&<text x="46" y="59">W</text>}{mode==='fold'&&<path d="M29 35h29v19H29zM43 35v19"/>}{mode==='seal'&&<><circle cx="54" cy="49" r="10"/><path d="M49 49l4 4 7-9"/></>}{mode==='film'&&<><rect x="45" y="36" width="20" height="25" rx="2"/><path d="M49 36v25M61 36v25M45 43h20M45 54h20"/></>}{mode==='sound'&&<path d="M47 43h6l7-7v24l-7-7h-6z"/>}</svg>
 }
 
-function Card({t,onOpen}:{t:Tool;onOpen:(t:Tool)=>void}) {
-  return <button className={'card '+(!t.ready?'planned':'')} onClick={()=>t.ready&&onOpen(t)} disabled={!t.ready}>
-    <div className="iconBox"><Icon t={t}/></div>
-    <div className="cardBody"><div className="cardTop"><span className="miniCat">{t.category}</span>{t.tag&&<span className="tag">{t.tag}</span>}</div><h3>{t.name}</h3><p>{t.desc}</p></div>
-    <span className={'status '+(!t.ready?'plannedStatus':'')}>{t.ready?'Ready':'Coming soon'}<span>→</span></span>
-  </button>
-}
+function Card({t,onOpen}:{t:Tool;onOpen:(t:Tool)=>void}){return <button className={'paperCard '+(!t.ready?'planned':'')} onClick={()=>t.ready&&onOpen(t)} disabled={!t.ready}><div className="cardPaper"><PaperIcon t={t}/><span className="cornerClip"/></div><div className="paperBody"><div className="paperMeta"><span>{t.kind}</span>{t.tag&&<b>{t.tag}</b>}</div><h3>{t.name}</h3><p>{t.desc}</p><div className="cardFoot"><span>{t.ready?'Use tool':'Coming soon'}</span><i>↗</i></div></div></button>}
 
-export default function Home() {
-  const [active,setActive]=useState<Tool|null>(null)
-  const [files,setFiles]=useState<File[]>([])
-  const [busy,setBusy]=useState(false)
-  const [message,setMessage]=useState('')
-  const [query,setQuery]=useState('')
-  const [category,setCategory]=useState('ALL')
-  const [signature,setSignature]=useState('')
-  const [html,setHtml]=useState('')
-  const [width,setWidth]=useState('')
-  const [height,setHeight]=useState('')
-  const [quality,setQuality]=useState('82')
-  const [start,setStart]=useState('00:00:00')
-  const [duration,setDuration]=useState('00:00:10')
-
-  useEffect(()=>{
-    const h=(e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();document.getElementById('tool-search')?.focus()}}
-    addEventListener('keydown',h);return()=>removeEventListener('keydown',h)
-  },[])
-
-  const filtered=useMemo(()=>tools.filter(t=>(category==='ALL'||t.category===category)&&(t.name+' '+t.desc+' '+t.category).toLowerCase().includes(query.toLowerCase())),[category,query])
-
-  function openTool(t:Tool){setActive(t);setFiles([]);setMessage('');setSignature('');setHtml('');setWidth('');setHeight('');setQuality('82');setStart('00:00:00');setDuration('00:00:10')}
-
-  function accept(){
-    if(!active)return '.pdf'
-    const a=active.action
-    if(a==='merge-pdf')return '.pdf'
-    if(a==='jpg-to-pdf')return 'image/jpeg'
-    if(a==='png-to-pdf')return 'image/png'
-    if(a==='docx-to-txt')return '.docx'
-    if(a==='txt-to-pdf')return '.txt'
-    if(a==='csv-to-xlsx')return '.csv'
-    if(a==='xlsx-to-csv')return '.xlsx'
-    if(a==='pdf-to-word')return '.pdf'
-    if(a==='word-to-pdf')return '.docx'
-    if(a==='ppt-to-pdf'||a==='pptx-to-images')return '.pptx'
-    if(a==='excel-to-pdf')return '.xlsx,.xls'
-    if(a==='ocr')return '.pdf,.jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff'
-    if(['pdf-to-jpg','pdf-to-png','compress-pdf','pdf-to-text','bank-statement-tools','electricity-bill-tools','food-nutrition-files','invoice-tools'].includes(a))return '.pdf,.txt,.csv'
-    if(a==='video-trim'||active.kind==='Video')return 'video/*'
-    if(active.kind==='Image')return 'image/*'
-    if(active.kind==='Audio')return 'audio/*'
-    return '.pdf'
-  }
-
-  async function processFile(){
-    if(!active)return
-    if(!files.length&&active.action!=='html-to-pdf')return setMessage('Choose a file first.')
-    if(active.action==='html-to-pdf'&&!html.trim())return setMessage('Enter HTML first.')
-    setBusy(true);setMessage('Processing securely…')
-    try{
-      const fd=new FormData();fd.append('action',active.action);files.forEach(f=>fd.append('files',f))
-      if(active.action==='sign-pdf')fd.append('signature',signature)
-      if(active.action==='html-to-pdf')fd.append('html',html)
-      if(active.action==='video-trim'){fd.append('start',start);fd.append('duration',duration)}
-      const r=await fetch('/api/process',{method:'POST',body:fd})
-      if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.error||'Processing failed')}
-      const blob=await r.blob();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url
-      a.download=active.action==='metadata'?'pdf-metadata.json':active.action==='docx-to-txt'?'document.txt':active.action==='pdf-to-text'?'document.txt':active.action==='ocr'?'ocr-result.txt':active.action==='pdf-to-word'?'document.docx':active.action==='pdf-to-jpg'||active.action==='pdf-to-png'||active.action==='pptx-to-images'?'processed-pages.zip':active.action==='word-to-pdf'||active.action==='ppt-to-pdf'||active.action==='excel-to-pdf'?'converted.pdf':active.action.endsWith('-tools')?active.action+'.json':active.action+'.bin'
-      a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);setMessage('Complete — your file is ready.')
-    }catch(e){setMessage(e instanceof Error?e.message:'Processing failed.')}finally{setBusy(false)}
-  }
-
-  async function imageProcess(){
-    if(!active||!files[0])return setMessage('Choose an image first.')
-    setBusy(true);setMessage('Processing image securely…')
-    try{
-      const fd=new FormData();fd.append('file',files[0]);fd.append('format',active.action);fd.append('quality',quality);if(width)fd.append('width',width);if(height)fd.append('height',height)
-      const r=await fetch('/api/image',{method:'POST',body:fd});if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.error||'Image processing failed')}
-      const blob=await r.blob();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='ark-'+active.action+'.'+(active.action==='jpg'?'jpg':active.action==='png'?'png':'webp');a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);setMessage('Complete — image processed.')
-    }catch(e){setMessage(e instanceof Error?e.message:'Image processing failed')}finally{setBusy(false)}
-  }
-
-  const run=active?.kind==='Image'&&['compress','resize','crop','jpg','png','webp'].includes(active.action)?imageProcess:processFile
-  const popular=tools.filter(t=>['Merge PDF','Compress PDF','PDF to Word','PDF to JPG','OCR PDF','Sign PDF','Word to PDF','JPG to PDF'].includes(t.name))
-
-  return <>
-    <header className="nav"><div className="wrap navInner"><a className="brand" href="#top"><span className="brandMark"><Icon t={d('ARK','','','')}/></span><span>ARK <b>FileTools</b></span></a><nav className="navlinks"><a href="#tools">Tools</a><a href="#pdf">PDF</a><a href="#images">Images</a><a href="#ai">AI Tools</a><a href="#workflows">Workflows</a></nav><a className="github" href="https://github.com/rakeshayitam7/pdf-file-tools-ark" target="_blank" rel="noreferrer">GitHub ↗</a></div></header>
-    <main id="top">
-      <section className="hero"><div className="ambient ambientA"/><div className="ambient ambientB"/><div className="wrap heroInner"><div className="heroCopy"><div className="eyebrow"><span/> COMPLETE FILE WORKSPACE</div><h1>Every File Tool You Need.<br/><em>In One Place.</em></h1><p>Merge, split, compress, convert, edit, protect and intelligently process your files — quickly, privately and simply.</p><div className="heroActions"><a className="primary" href="#tools">Explore Tools <span>↓</span></a><a className="secondary" href="#tools">Upload a File</a></div><div className="trust"><span>⌁</span> Secure processing <i/> <span>80+</span> tools in the library <i/> <span>Built for speed</span></div></div><div className="heroVisual"><div className="orbit orbit1"/><div className="orbit orbit2"/><div className="heroDoc"><div className="docGlow"/><div className="docLines"><b/><b/><b/></div><div className="transform">↔</div><div className="miniDoc"/></div><div className="floatCard f1"><span>PDF</span> → <strong>DOC</strong></div><div className="floatCard f2"><span>✓</span> Ready to process</div></div></div></section>
-      <section className="section popular" id="pdf"><div className="wrap"><div className="sectionHead"><div><span className="sectionEyebrow">START HERE</span><h2>Popular tools</h2><p>The essentials for everyday PDF work.</p></div><a href="#tools">View all tools →</a></div><div className="grid">{popular.map((t,i)=><Card key={t.name+t.action+i} t={t} onOpen={openTool}/>)}</div></div></section>
-      <section className="section library" id="tools"><div className="wrap"><div className="libraryTop"><div><span className="sectionEyebrow">THE TOOLBOX</span><h2>Complete Tool Library</h2><p>Everything organized around the work you actually need to do.</p></div><label className="search"><span>⌕</span><input id="tool-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search tools…"/><kbd>Ctrl K</kbd></label></div><div className="tabs">{categories.map(c=><button key={c} className={category===c?'active':''} onClick={()=>setCategory(c)}>{c}</button>)}</div><div className="resultCount">{filtered.length} tools {query&&<>matching “{query}”</>}</div><div className="grid">{filtered.map((t,i)=><Card key={t.name+t.action+i} t={t} onOpen={openTool}/>)}</div></div></section>
-      <section className="section workflow" id="workflows"><div className="wrap"><div className="workflowPanel"><div><span className="sectionEyebrow">WORKFLOWS</span><h2>Chain your file operations.</h2><p>Build a sequence such as Compress → OCR → Watermark → Convert.</p><div className="nodes"><span>Upload PDF</span><b>→</b><span>Compress</span><b>→</b><span>OCR</span><b>→</b><span>Watermark</span><b>→</b><span>Download</span></div></div><div className="workflowVisual"><div className="node activeNode">PDF <small>INPUT</small></div><div className="line"/><div className="node">OCR <small>PROCESS</small></div><div className="line"/><div className="node">OUT <small>READY</small></div></div></div></div></section>
-      <section className="section aiSection" id="ai"><div className="wrap aiPanel"><div className="aiCopy"><span className="sectionEyebrow">DOCUMENT INTELLIGENCE</span><h2>Understand your documents.</h2><p>OCR and document extraction are available today. Advanced AI features remain clearly marked until connected.</p><div className="aiList"><span>✦ OCR scanned PDFs</span><span>✦ Extract text & document data</span><span>○ Summarize & Ask PDF — coming soon</span></div></div><div className="aiOrb"><div>✦</div><span>DOCUMENT<br/>INTELLIGENCE</span></div></div></section>
-      {active&&<section className="section toolSection"><div className="wrap"><div className="workspace"><div className="workspaceHead"><div className="workspaceIcon"><Icon t={active}/></div><div><span className="sectionEyebrow">{active.category}</span><h2>{active.name}</h2><p>{active.desc}</p></div><button className="close" onClick={()=>setActive(null)} aria-label="Close tool">×</button></div>
-        {active.action==='sign-pdf'&&<input className="toolInput" value={signature} onChange={e=>setSignature(e.target.value)} placeholder="Signature name / text"/>}
-        {active.action==='html-to-pdf'&&<textarea className="toolInput" value={html} onChange={e=>setHtml(e.target.value)} placeholder="Paste HTML here…" rows={8}/>} 
-        {active.action==='video-trim'&&<div className="fields"><input className="toolInput" value={start} onChange={e=>setStart(e.target.value)} placeholder="Start e.g. 00:00:05"/><input className="toolInput" value={duration} onChange={e=>setDuration(e.target.value)} placeholder="Duration e.g. 00:00:10"/></div>}
-        {active.action==='resize'&&<div className="fields"><input className="toolInput" value={width} onChange={e=>setWidth(e.target.value)} placeholder="Width (px)"/><input className="toolInput" value={height} onChange={e=>setHeight(e.target.value)} placeholder="Height (px, optional)"/></div>}
-        {active.kind==='Image'&&(active.action==='compress'||active.action==='resize'||active.action==='crop')&&<label className="quality">Quality: {quality}<input type="range" min="10" max="100" value={quality} onChange={e=>setQuality(e.target.value)}/></label>}
-        {active.action!=='html-to-pdf'&&<label className="primary chooser"><input type="file" accept={accept()} multiple={active.action==='merge-pdf'||active.action==='jpg-to-pdf'||active.action==='png-to-pdf'} onChange={e=>setFiles(Array.from(e.target.files||[]))}/><span className="uploadIcon">↑</span>{files.length?`${files.length} file(s) selected`:'Choose file(s) or drag here'}</label>}
-        {files.length>0&&<div className="files">{files.map(f=><div key={f.name}><strong>{f.name}</strong><span>{(f.size/1024/1024).toFixed(2)} MB</span></div>)}</div>}
-        <button className="primary process" disabled={busy||(!files.length&&active.action!=='html-to-pdf')||(active.action==='sign-pdf'&&!signature.trim())} onClick={run}>{busy?'Processing…':'Process with ARK →'}</button>
-        {message&&<div className="result"><span>●</span>{message}</div>}<small className="privacy">⌁ Files are processed securely.</small>
-      </div></div></section>}
-      <section className="section how"><div className="wrap"><div className="sectionHead"><div><span className="sectionEyebrow">HOW IT WORKS</span><h2>Simple by design.</h2></div></div><div className="steps"><div><b>01</b><h3>Choose a tool</h3><p>Find exactly what you need with categories or Ctrl K search.</p></div><div><b>02</b><h3>Drop your file</h3><p>Upload with a clear, responsive processing workspace.</p></div><div><b>03</b><h3>Process & download</h3><p>Follow the live state from upload to completed result.</p></div></div></div></section>
-    </main>
-    <footer className="footer"><div className="wrap"><div className="footerBrand"><span className="brandMark"><Icon t={d('ARK','','','')}/></span><b>ARK FileTools</b></div><span>Every File Tool You Need. In One Place.</span><span>Built with a black + electric-blue identity.</span></div></footer>
-  </>
-}
+export default function Home(){
+ const[active,setActive]=useState<Tool|null>(null),[files,setFiles]=useState<File[]>([]),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[query,setQuery]=useState(''),[category,setCategory]=useState('ALL'),[signature,setSignature]=useState(''),[html,setHtml]=useState(''),[width,setWidth]=useState(''),[height,setHeight]=useState(''),[quality,setQuality]=useState('82'),[start,setStart]=useState('00:00:00'),[duration,setDuration]=useState('00:00:10'),[shape,setShape]=useState('');
+ useEffect(()=>{const h=(e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();document.getElementById('tool-search')?.focus()}};addEventListener('keydown',h);return()=>removeEventListener('keydown',h)},[])
+ const filtered=useMemo(()=>tools.filter(t=>(category==='ALL'||t.category===category)&&(t.name+' '+t.desc+' '+t.category+' '+t.kind).toLowerCase().includes(query.toLowerCase())),[category,query]);
+ function openTool(t:Tool){setShape(t.action.match(/merge|compress|split|extract|video|audio|resize/)?.[0]||'paper');setActive(t);setFiles([]);setMessage('');setSignature('');setHtml('');setWidth('');setHeight('');setQuality('82');setStart('00:00:00');setDuration('00:00:10');setTimeout(()=>document.getElementById('workspace')?.scrollIntoView({behavior:'smooth',block:'center'}),120)}
+ function accept(){if(!active)return'.pdf';const a=active.action;if(a==='jpg-to-pdf')return'image/jpeg';if(a==='png-to-pdf')return'image/png';if(a==='docx-to-txt')return'.docx';if(a==='txt-to-pdf')return'.txt';if(a==='csv-to-xlsx')return'.csv';if(a==='xlsx-to-csv')return'.xlsx';if(a==='pdf-to-word')return'.pdf';if(a==='word-to-pdf')return'.docx';if(a==='ppt-to-pdf'||a==='pptx-to-images')return'.pptx';if(a==='excel-to-pdf')return'.xlsx,.xls';if(a==='ocr')return'.pdf,.jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff';if(['pdf-to-jpg','pdf-to-png','compress-pdf','pdf-to-text','bank-statement-tools','electricity-bill-tools','food-nutrition-files','invoice-tools'].includes(a))return'.pdf,.txt,.csv';if(a==='video-trim'||active.kind==='Video')return'video/*';if(active.kind==='Image')return'image/*';if(active.kind==='Audio')return'audio/*';return'.pdf'}
+ async function processFile(){if(!active)return;if(!files.length&&active.action!=='html-to-pdf')return setMessage('Choose a file first.');if(active.action==='html-to-pdf'&&!html.trim())return setMessage('Enter HTML first.');setBusy(true);setMessage('Working on your file…');try{const fd=new FormData();fd.append('action',active.action);files.forEach(f=>fd.append('files',f));if(active.action==='sign-pdf')fd.append('signature',signature);if(active.action==='html-to-pdf')fd.append('html',html);if(active.action==='video-trim'){fd.append('start',start);fd.append('duration',duration)}const r=await fetch('/api/process',{method:'POST',body:fd});if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.error||'Processing failed')}const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=active.action==='pdf-to-word'?'document.docx':active.action==='pdf-to-text'||active.action==='docx-to-txt'||active.action==='ocr'?'document.txt':active.action==='pdf-to-jpg'||active.action==='pdf-to-png'||active.action==='pptx-to-images'?'processed-pages.zip':active.action==='word-to-pdf'||active.action==='ppt-to-pdf'||active.action==='excel-to-pdf'?'converted.pdf':active.action.endsWith('-tools')?active.action+'.json':active.action+'.bin';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);setMessage('Finished — your file is ready.')}catch(e){setMessage(e instanceof Error?e.message:'Processing failed.')}finally{setBusy(false)}}
+ async function imageProcess(){if(!active||!files[0])return setMessage('Choose an image first.');setBusy(true);setMessage('Working on your image…');try{const fd=new FormData();fd.append('file',files[0]);fd.append('format',active.action);fd.append('quality',quality);if(width)fd.append('width',width);if(height)fd.append('height',height);const r=await fetch('/api/image',{method:'POST',body:fd});if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.error||'Image processing failed')}const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ark-'+active.action+'.'+(active.action==='jpg'?'jpg':active.action==='png'?'png':'webp');a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);setMessage('Finished — image processed.')}catch(e){setMessage(e instanceof Error?e.message:'Image processing failed')}finally{setBusy(false)}}
+ const run=active?.category==='IMAGES'&&['compress','resize','crop','jpg','png','webp'].includes(active.action)?imageProcess:processFile;
+ const popular=tools.filter(t=>['Merge PDF','Compress PDF','PDF to Word','PDF to JPG','OCR PDF','Sign PDF','Word to PDF','JPG to PDF'].includes(t.name));
+ return <><header className="paperNav"><div className="paperWrap navInside"><a className="paperBrand" href="#top"><span className="brandPaper"><PaperIcon t={d('ARK','','','PDF & DOCUMENTS')}/></span><span>ARK <strong>FileTools</strong></span></a><nav><a href="#tools">Tools</a><a href="#pdf">PDF</a><a href="#media">Media</a><a href="#finance">Finance</a></nav><a className="githubLink" href="https://github.com/rakeshayitam7/pdf-file-tools-ark" target="_blank" rel="noreferrer">GitHub ↗</a></div></header><main id="top">
+ <section className="paperHero"><div className="paperWrap heroGrid"><div className="heroText"><span className="stamp">ARK • FILE WORKSHOP</span><h1>Give your files<br/><em>a new shape.</em></h1><p>A warm, paper-first workspace for PDF, documents, images, video, audio and data.</p><a className="inkButton" href="#tools">Open the toolbox <span>→</span></a></div><div className="paperStage"><div className="doodle doodleA">✿</div><div className="doodle doodleB">✦</div><div className="sheet sheetBack"/><div className="sheet sheetMain"><span>PDF</span><i/><i/><i/></div><div className="craft boatCraft">⌁</div><div className="craft flowerCraft">✿</div><div className="craft cubeCraft">◇</div><div className="scribble">fold • transform • make</div></div></div></section>
+ <section className="section paperSection" id="pdf"><div className="paperWrap"><div className="sectionTitle"><div><span className="eyebrowInk">START WITH THE ESSENTIALS</span><h2>Popular tools</h2><p>Pick a task and let the paper do the talking.</p></div><span className="pageMark">01 / 08</span></div><div className="paperGrid">{popular.map((t,i)=><Card key={t.name+t.action+i} t={t} onOpen={openTool}/>)}</div></div></section>
+ <section className="section toolbox" id="tools"><div className="paperWrap"><div className="sectionTitle toolboxTitle"><div><span className="eyebrowInk">THE TOOLBOX</span><h2>Everything, neatly sorted.</h2><p>PDF & documents first, then separate shelves for images, video, audio and finance.</p></div><label className="paperSearch"><span>⌕</span><input id="tool-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search the toolbox…"/><kbd>Ctrl K</kbd></label></div><div className="paperTabs">{categories.map(c=><button key={c} className={category===c?'active':''} onClick={()=>setCategory(c)}>{c}</button>)}</div><div className="countLine">{filtered.length} tools in this shelf</div><div className="paperGrid">{filtered.map((t,i)=><Card key={t.name+t.action+i} t={t} onOpen={openTool}/>)}</div></div></section>
+ <section className="section mediaStrip" id="media"><div className="paperWrap shelfRow"><div><span className="eyebrowInk">MEDIA SHELF</span><h2>Video & audio live separately.</h2><p>No clutter inside the PDF toolbox. Media has its own workspace.</p></div><div className="shelfIcons"><div><PaperIcon t={tools.find(t=>t.action==='video-trim')!}/><b>VIDEO</b></div><div><PaperIcon t={tools.find(t=>t.action==='mp3-to-wav')!}/><b>AUDIO</b></div></div></div></section>
+ <section className="section financeStrip" id="finance"><div className="paperWrap financeCard"><div><span className="eyebrowInk">FINANCE & DATA</span><h2>Useful extraction, without the noise.</h2><p>Bank statements, electricity bills, invoices and nutrition files have their own shelf.</p></div><div className="ledger"><span>DATE</span><span>DOCUMENT</span><span>AMOUNT</span><b>•••</b></div></div></section>
+ {active&&<section className="toolSection" id="workspace"><div className={'transformOverlay '+shape}><span className="transformPaper">✦</span><i/><i/><i/></div><div className="paperWrap"><div className="workspacePaper"><div className="workspaceHead"><div className="workspaceMark"><PaperIcon t={active}/></div><div><span className="eyebrowInk">{active.category}</span><h2>{active.name}</h2><p>{active.desc}</p></div><button className="closePaper" onClick={()=>setActive(null)}>×</button></div>{active.action==='sign-pdf'&&<input className="toolInput" value={signature} onChange={e=>setSignature(e.target.value)} placeholder="Signature name / text"/>}{active.action==='html-to-pdf'&&<textarea className="toolInput" value={html} onChange={e=>setHtml(e.target.value)} placeholder="Paste HTML here…" rows={8}/>} {active.action==='video-trim'&&<div className="fields"><input className="toolInput" value={start} onChange={e=>setStart(e.target.value)} placeholder="Start e.g. 00:00:05"/><input className="toolInput" value={duration} onChange={e=>setDuration(e.target.value)} placeholder="Duration e.g. 00:00:10"/></div>}{active.action==='resize'&&<div className="fields"><input className="toolInput" value={width} onChange={e=>setWidth(e.target.value)} placeholder="Width (px)"/><input className="toolInput" value={height} onChange={e=>setHeight(e.target.value)} placeholder="Height (px, optional)"/></div>}{active.category==='IMAGES'&&['compress','resize','crop'].includes(active.action)&&<label className="quality">Quality: {quality}<input type="range" min="10" max="100" value={quality} onChange={e=>setQuality(e.target.value)}/></label>}{active.action!=='html-to-pdf'&&<label className="dropPaper"><input type="file" accept={accept()} multiple={active.action==='merge-pdf'||active.action==='jpg-to-pdf'||active.action==='png-to-pdf'} onChange={e=>setFiles(Array.from(e.target.files||[]))}/><span>✦</span><b>{files.length?`${files.length} file(s) selected`:'Drop your file here'}</b><small>or choose from your device</small></label>}{files.length>0&&<div className="fileList">{files.map(f=><div key={f.name}><strong>{f.name}</strong><span>{(f.size/1024/1024).toFixed(2)} MB</span></div>)}</div>}<button className="inkButton processButton" disabled={busy||(!files.length&&active.action!=='html-to-pdf')||(active.action==='sign-pdf'&&!signature.trim())} onClick={run}>{busy?'Working…':'Transform file →'}</button>{message&&<div className="resultPaper">✦ {message}</div>}<small className="privacyPaper">Your file stays in the processing workspace.</small></div></div></section>}
+ <section className="paperFooter"><div className="paperWrap footerInside"><div><span className="stamp small">ARK • FILETOOLS</span><h2>Simple tools. Tactile design.</h2></div><span>Fold it. Shape it. Finish it.</span></div></section>
+ </main><footer className="copyright"><div className="paperWrap">© ARK FileTools · PDF, documents, media and data tools in one paper-first workspace.</div></footer></>}
