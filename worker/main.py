@@ -13,7 +13,7 @@ MAX_FILE_BYTES=int(os.getenv('MAX_FILE_BYTES',str(100*1024*1024))); KEY=os.geten
 MEDIA={'mp3-to-wav','wav-to-mp3','mp3-to-ogg','audio-compress','mp4-to-webm','webm-to-mp4','mp4-to-gif','video-compress','video-trim','video-to-mp3'}
 OFFICE={'word-to-pdf','ppt-to-pdf','excel-to-pdf','pptx-to-images'}
 EXTRACT={'bank-statement-tools','electricity-bill-tools','food-nutrition-files','invoice-tools'}
-PDF={'split-pdf','delete-pages','organize-pdf','rearrange-pages','duplicate-pages','add-pages','crop-pdf','repair-pdf','flatten-pdf','optimize-pdf','linearize-pdf','protect-pdf','unlock-pdf','add-text-pdf','add-image-pdf','annotate-pdf','highlight-pdf','add-shapes-pdf','fill-pdf-forms','redact-pdf','remove-metadata','extract-images','extract-tables','compare-pdf','ai-summarize-pdf','ask-pdf'}
+PDF={'split-pdf','delete-pages','draw-pdf','organize-pdf','rearrange-pages','duplicate-pages','add-pages','crop-pdf','repair-pdf','flatten-pdf','optimize-pdf','linearize-pdf','protect-pdf','unlock-pdf','add-text-pdf','add-image-pdf','annotate-pdf','highlight-pdf','add-shapes-pdf','fill-pdf-forms','redact-pdf','remove-metadata','extract-images','extract-tables','compare-pdf','ai-summarize-pdf','ask-pdf'}
 def run(c):
  p=subprocess.run(c,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
  if p.returncode: raise RuntimeError(p.stderr[-3500:] or 'Command failed')
@@ -197,19 +197,36 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
     for w in p.widgets() or []:w.update()
   elif a=='remove-metadata':d.set_metadata({})
   elif a=='add-text-pdf':
-   for p in d:p.insert_text((45,55),str(o.get('text') or signature or 'File Tools ARK'),fontsize=14)
+   text=str(o.get('text') or signature or 'File Tools ARK');page_no=max(1,int(o.get('page',1)));x=float(o.get('x',45));y=float(o.get('y',55));size=float(o.get('size',14))
+   if page_no>len(d):raise HTTPException(400,f'Page number is outside 1-{len(d)}.')
+   d[page_no-1].insert_text((x,y),text,fontsize=size)
   elif a=='add-image-pdf':
    if len(ins)<2:raise HTTPException(400,'Upload PDF and image together.')
-   for p in d:p.insert_image(fitz.Rect(45,45,220,180),filename=str(ins[1]))
+   page_no=max(1,int(o.get('page',1)));x=float(o.get('x',45));y=float(o.get('y',45));width=float(o.get('width',175));height=float(o.get('height',135))
+   if page_no>len(d):raise HTTPException(400,f'Page number is outside 1-{len(d)}.')
+   d[page_no-1].insert_image(fitz.Rect(x,y,x+width,y+height),filename=str(ins[1]))
   elif a=='annotate-pdf':
-   for p in d:p.add_text_annot((70,70),str(o.get('text') or 'Annotation'))
+   page_no=max(1,int(o.get('page',1)));x=float(o.get('x',70));y=float(o.get('y',70));text=str(o.get('text') or 'Annotation')
+   if page_no>len(d):raise HTTPException(400,f'Page number is outside 1-{len(d)}.')
+   d[page_no-1].add_text_annot((x,y),text)
   elif a=='highlight-pdf':
    term=str(o.get('text') or signature or '').strip()
    if not term:raise HTTPException(400,'Enter text to highlight.')
    for p in d:
     for r in p.search_for(term):p.add_highlight_annot(r).update()
   elif a=='add-shapes-pdf':
-   for p in d:p.draw_rect(fitz.Rect(45,45,220,150),color=(.2,.35,.45),width=2)
+   page_no=max(1,int(o.get('page',1)));x=float(o.get('x',45));y=float(o.get('y',45));width=float(o.get('width',175));height=float(o.get('height',105));shape=str(o.get('shape','rectangle')).lower();sw=float(o.get('stroke',2))
+   if page_no>len(d):raise HTTPException(400,f'Page number is outside 1-{len(d)}.')
+   p=d[page_no-1];r=fitz.Rect(x,y,x+width,y+height)
+   if shape=='circle':p.draw_oval(r,color=(.2,.35,.45),width=sw)
+   elif shape=='line':p.draw_line((x,y),(x+width,y+height),color=(.2,.35,.45),width=sw)
+   else:p.draw_rect(r,color=(.2,.35,.45),width=sw)
+  elif a=='draw-pdf':
+   page_no=max(1,int(o.get('page',1)));pts=o.get('points',[])
+   if page_no>len(d):raise HTTPException(400,f'Page number is outside 1-{len(d)}.')
+   if not isinstance(pts,list) or len(pts)<2:raise HTTPException(400,'Provide at least two drawing points.')
+   p=d[page_no-1]
+   for a1,b1 in zip(pts,pts[1:]):p.draw_line((float(a1[0]),float(a1[1])),(float(b1[0]),float(b1[1])),color=(.1,.1,.1),width=float(o.get('stroke',2)))
   elif a=='redact-pdf':
    term=str(o.get('text') or signature or '').strip()
    if not term:raise HTTPException(400,'Enter text to redact.')
