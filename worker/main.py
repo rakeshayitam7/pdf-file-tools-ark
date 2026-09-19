@@ -13,7 +13,7 @@ MAX_FILE_BYTES=int(os.getenv('MAX_FILE_BYTES',str(100*1024*1024))); KEY=os.geten
 MEDIA={'mp3-to-wav','wav-to-mp3','mp3-to-ogg','audio-compress','mp4-to-webm','webm-to-mp4','mp4-to-gif','video-compress','video-trim','video-to-mp3'}
 OFFICE={'word-to-pdf','ppt-to-pdf','excel-to-pdf','pptx-to-images'}
 EXTRACT={'bank-statement-tools','electricity-bill-tools','food-nutrition-files','invoice-tools'}
-PDF={'split-pdf','organize-pdf','rearrange-pages','duplicate-pages','add-pages','crop-pdf','repair-pdf','flatten-pdf','optimize-pdf','linearize-pdf','protect-pdf','unlock-pdf','add-text-pdf','add-image-pdf','annotate-pdf','highlight-pdf','add-shapes-pdf','fill-pdf-forms','redact-pdf','remove-metadata','extract-images','extract-tables','compare-pdf','ai-summarize-pdf','ask-pdf'}
+PDF={'split-pdf','delete-pages','organize-pdf','rearrange-pages','duplicate-pages','add-pages','crop-pdf','repair-pdf','flatten-pdf','optimize-pdf','linearize-pdf','protect-pdf','unlock-pdf','add-text-pdf','add-image-pdf','annotate-pdf','highlight-pdf','add-shapes-pdf','fill-pdf-forms','redact-pdf','remove-metadata','extract-images','extract-tables','compare-pdf','ai-summarize-pdf','ask-pdf'}
 def run(c):
  p=subprocess.run(c,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
  if p.returncode: raise RuntimeError(p.stderr[-3500:] or 'Command failed')
@@ -146,6 +146,15 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
    else:savepdf(fitz.open(ins[0]),p)
    return res(p,root,'application/pdf',p.name)
   d=fitz.open(ins[0])
+  if a=='delete-pages':
+   raw=str(o.get('pages') or '').strip()
+   if not raw:raise HTTPException(400,'Select at least one page to delete.')
+   try:ids=sorted(set(int(x)-1 for x in raw.split(',') if x.strip()))
+   except:raise HTTPException(400,'Pages must be numbers separated by commas.')
+   if any(i<0 or i>=len(d) for i in ids):raise HTTPException(400,f'Page number is outside the PDF range 1-{len(d)}.')
+   if len(ids)>=len(d):raise HTTPException(400,'You cannot delete every page. Keep at least one page.')
+   for i in reversed(ids):d.delete_page(i)
+   p=root/'pages-deleted.pdf';savepdf(d,p);d.close();return res(p,root,'application/pdf',p.name)
   if a in {'split-pdf','organize-pdf','rearrange-pages','duplicate-pages','add-pages'}:
    ids=list(range(len(d)))
    if a=='split-pdf':ids=ids[:1]
