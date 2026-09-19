@@ -1,5 +1,6 @@
 'use client'
 import {useEffect,useMemo,useState} from 'react'
+import {PDFDocument} from 'pdf-lib'
 type Tool={name:string;desc:string;action:string;kind:string;accept?:string;tag?:string}
 const make=(s:string,kind:string,accept='.pdf')=>s.split('|').map(x=>{const [name,action,desc]=x.split('~');return {name,action,desc:desc||name,kind,accept}})
 const popular:Tool[]=[
