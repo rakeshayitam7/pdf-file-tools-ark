@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/pdf-to-word</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/pdf-to-jpg</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/jpg-to-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/ocr</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/word-to-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/pdf-to-text</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/pdf-to-excel</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/pdf-to-ppt</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/ppt-to-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/excel-to-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/pptx-to-images</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/html-to-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/docx-to-txt</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/txt-to-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/png-to-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+</urlset>
