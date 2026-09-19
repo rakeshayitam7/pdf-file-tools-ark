@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/compress</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/resize</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/crop</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/jpg</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+</urlset>
