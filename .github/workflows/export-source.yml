@@ -1,0 +1,23 @@
+name: Export File Tools ARK Source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package source
+        run: |
+          mkdir -p export/file-tools-ark
+          rsync -a --exclude='.git' --exclude='node_modules' --exclude='.next' ./ export/file-tools-ark/
+          cd export
+          zip -r file-tools-ark-latest.zip file-tools-ark
+      - uses: actions/upload-artifact@v4
+        with:
+          name: file-tools-ark-latest
+          path: export/file-tools-ark-latest.zip
+          retention-days: 7
