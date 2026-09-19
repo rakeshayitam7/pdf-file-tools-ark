@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/merge-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/compress-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/split-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/organize-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/rearrange-pages</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/duplicate-pages</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/add-pages</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/rotate-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/delete-pages</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/extract-pages</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/crop-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/repair-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/flatten-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/optimize-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/linearize-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/page-numbers</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/watermark</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/metadata</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/remove-metadata</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/protect-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/unlock-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/add-text-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/add-image-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/annotate-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/highlight-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/add-shapes-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/draw-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/fill-pdf-forms</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/redact-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+</urlset>
