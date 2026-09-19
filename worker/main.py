@@ -155,13 +155,36 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
    if len(ids)>=len(d):raise HTTPException(400,'You cannot delete every page. Keep at least one page.')
    for i in reversed(ids):d.delete_page(i)
    p=root/'pages-deleted.pdf';savepdf(d,p);d.close();return res(p,root,'application/pdf',p.name)
-  if a in {'split-pdf','organize-pdf','rearrange-pages','duplicate-pages','add-pages'}:
+  if a=='split-pdf':
+   folder=root/'split-pages';folder.mkdir()
+   for i in range(len(d)):
+    one=fitz.open();one.insert_pdf(d,from_page=i,to_page=i);savepdf(one,folder/f'page-{i+1}.pdf');one.close()
+   d.close();z=Path(shutil.make_archive(str(root/'split-pages'),'zip',root_dir=folder));return res(z,root,'application/zip','split-pages.zip')
+  if a=='extract-pages':
+   raw=str(o.get('pages') or o.get('order') or '').strip()
+   if not raw:raise HTTPException(400,'Enter page numbers such as 1,3,5.')
+   try:ids=sorted(set(int(x)-1 for x in raw.split(',') if x.strip()))
+   except:raise HTTPException(400,'Page numbers must be comma-separated numbers.')
+   if not ids or any(i<0 or i>=len(d) for i in ids):raise HTTPException(400,f'Page number is outside the PDF range 1-{len(d)}.')
+   out=fitz.open()
+   for i in ids:out.insert_pdf(d,from_page=i,to_page=i)
+   p=root/'extracted-pages.pdf';savepdf(out,p);out.close();d.close();return res(p,root,'application/pdf',p.name)
+  if a in {'organize-pdf','rearrange-pages','duplicate-pages','add-pages'}:
    ids=list(range(len(d)))
-   if a=='split-pdf':ids=ids[:1]
-   if a in {'organize-pdf','rearrange-pages'} and o.get('order'):
-    try:ids=[int(x)-1 for x in str(o['order']).split(',') if 0<int(x)<=len(d)]
-    except:pass
-   if a=='duplicate-pages' and ids:ids.append(ids[0])
+   if a in {'organize-pdf','rearrange-pages'}:
+    raw=str(o.get('order') or '').strip()
+    if raw:
+     try:ids=[int(x)-1 for x in raw.split(',') if x.strip()]
+     except:raise HTTPException(400,'Page order must be comma-separated numbers.')
+     if not ids or any(i<0 or i>=len(d) for i in ids):raise HTTPException(400,f'Page order contains a page outside 1-{len(d)}.')
+   if a=='duplicate-pages':
+    raw=str(o.get('pages') or o.get('order') or '').strip()
+    if raw:
+     try:dup=[int(x)-1 for x in raw.split(',') if x.strip()]
+     except:raise HTTPException(400,'Page numbers must be comma-separated numbers.')
+     if any(i<0 or i>=len(d) for i in dup):raise HTTPException(400,f'Page number is outside the PDF range 1-{len(d)}.')
+     ids=ids+dup
+    elif ids:ids=ids+[ids[0]]
    out=fitz.open()
    for i in ids:out.insert_pdf(d,from_page=i,to_page=i)
    if a=='add-pages' and len(ins)>1:out.insert_pdf(fitz.open(ins[1]))
