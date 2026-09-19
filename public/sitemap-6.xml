@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/extract-images</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/extract-tables</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/compare-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/ai-summarize-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/ask-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/sign-pdf</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/zip-files</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/unzip-files</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdf-file-tools-ark.vercel.app/tools/base64</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+</urlset>
