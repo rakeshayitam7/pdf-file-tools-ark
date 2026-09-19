@@ -262,8 +262,8 @@ body:after{
 }
 .paperCard:hover .cardPaper{transform:none!important;box-shadow:none!important}
 .paperBody{background:#fff}
-.paperMeta span{
-  color:#687580!important;
+
+.paperMeta span{display:none!important;color:#687580!important;
   font-size:9px!important;
   letter-spacing:1px!important;
 }
