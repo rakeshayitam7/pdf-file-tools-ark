@@ -1,0 +1,88 @@
+import type { Metadata } from 'next'
+import Link from 'next/link'
+
+const SITE='https://pdf-file-tools-ark.vercel.app'
+type Tool={name:string;description:string;kind:string}
+const tools:Record<string,Tool>={
+'merge-pdf':{name:'Merge PDF Online',description:'Combine multiple PDF files into one PDF document.',kind:'PDF'},
+'compress-pdf':{name:'Compress PDF Online',description:'Reduce PDF file size for easier storage and sharing.',kind:'PDF'},
+'pdf-to-word':{name:'PDF to Word Converter',description:'Convert PDF documents into editable Word DOCX files.',kind:'PDF Converter'},
+'pdf-to-jpg':{name:'PDF to JPG Converter',description:'Convert PDF pages into JPG images.',kind:'PDF Converter'},
+'jpg-to-pdf':{name:'JPG to PDF Converter',description:'Turn JPG and JPEG images into a PDF document.',kind:'PDF Converter'},
+'ocr':{name:'OCR PDF Online',description:'Extract searchable text from scanned PDFs and images with OCR.',kind:'OCR'},
+'sign-pdf':{name:'Sign PDF Online',description:'Add a typed signature to a PDF document.',kind:'PDF Editor'},
+'word-to-pdf':{name:'Word to PDF Converter',description:'Convert DOC and DOCX documents into PDF files.',kind:'Document Converter'},
+'split-pdf':{name:'Split PDF Online',description:'Split a PDF into separate page files.',kind:'PDF'},
+'organize-pdf':{name:'Organize PDF Pages',description:'Reorder PDF pages into the order you need.',kind:'PDF Editor'},
+'rearrange-pages':{name:'Rearrange PDF Pages',description:'Set a custom order for pages in a PDF.',kind:'PDF Editor'},
+'duplicate-pages':{name:'Duplicate PDF Pages',description:'Duplicate selected pages inside a PDF.',kind:'PDF Editor'},
+'add-pages':{name:'Add PDF Pages',description:'Append pages from another PDF document.',kind:'PDF Editor'},
+'rotate-pdf':{name:'Rotate PDF',description:'Rotate PDF pages to the correct orientation.',kind:'PDF'},
+'delete-pages':{name:'Delete PDF Pages',description:'Select and remove unwanted pages from a PDF.',kind:'PDF Editor'},
+'extract-pages':{name:'Extract PDF Pages',description:'Extract selected pages from a PDF into a new document.',kind:'PDF'},
+'crop-pdf':{name:'Crop PDF',description:'Crop PDF page margins and visible page area.',kind:'PDF Editor'},
+'repair-pdf':{name:'Repair PDF',description:'Attempt to recover and rebuild a damaged PDF.',kind:'PDF'},
+'flatten-pdf':{name:'Flatten PDF',description:'Flatten interactive PDF content into the document.',kind:'PDF'},
+'optimize-pdf':{name:'Optimize PDF',description:'Optimize PDF objects for a cleaner, smaller document.',kind:'PDF'},
+'linearize-pdf':{name:'Fast Web View PDF',description:'Linearize a PDF for progressive web delivery.',kind:'PDF'},
+'page-numbers':{name:'Add PDF Page Numbers',description:'Add page numbers to PDF pages.',kind:'PDF Editor'},
+'watermark':{name:'Watermark PDF',description:'Add a File Tools ARK watermark to PDF pages.',kind:'PDF Editor'},
+'metadata':{name:'PDF Metadata Viewer',description:'View basic PDF metadata such as title, author and page count.',kind:'PDF Utility'},
+'remove-metadata':{name:'Remove PDF Metadata',description:'Remove metadata from a PDF document.',kind:'PDF Privacy'},
+'protect-pdf':{name:'Protect PDF with Password',description:'Password-protect a PDF document.',kind:'PDF Security'},
+'unlock-pdf':{name:'Unlock PDF',description:'Unlock a PDF when you know its password.',kind:'PDF Security'},
+'add-text-pdf':{name:'Add Text to PDF',description:'Place custom text on a PDF page.',kind:'PDF Editor'},
+'add-image-pdf':{name:'Add Image to PDF',description:'Place an image onto a PDF page.',kind:'PDF Editor'},
+'annotate-pdf':{name:'Annotate PDF',description:'Add notes and annotations to PDF pages.',kind:'PDF Editor'},
+'highlight-pdf':{name:'Highlight PDF',description:'Highlight matching text in a PDF.',kind:'PDF Editor'},
+'add-shapes-pdf':{name:'Add Shapes to PDF',description:'Add rectangles, circles and lines to PDF pages.',kind:'PDF Editor'},
+'draw-pdf':{name:'Draw on PDF',description:'Draw freehand lines directly on a PDF page.',kind:'PDF Editor'},
+'fill-pdf-forms':{name:'Fill PDF Forms',description:'Fill named PDF form fields using structured input.',kind:'PDF Forms'},
+'redact-pdf':{name:'Redact PDF',description:'Cover matching text in a PDF with a redaction mark.',kind:'PDF Privacy'},
+'extract-images':{name:'Extract Images from PDF',description:'Export embedded images from a PDF document.',kind:'PDF Extraction'},
+'extract-tables':{name:'Extract Tables from PDF',description:'Export detected PDF table data to XLSX.',kind:'PDF Extraction'},
+'compare-pdf':{name:'Compare PDF',description:'Compare text content from two PDF files.',kind:'PDF Utility'},
+'pdf-to-text':{name:'PDF to Text Converter',description:'Extract selectable text from a PDF into a text file.',kind:'PDF Converter'},
+'pdf-to-excel':{name:'PDF to Excel Converter',description:'Export PDF lines and detected data to an Excel file.',kind:'PDF Converter'},
+'pdf-to-ppt':{name:'PDF to PowerPoint Converter',description:'Create an image-based PowerPoint presentation from PDF pages.',kind:'PDF Converter'},
+'ppt-to-pdf':{name:'PowerPoint to PDF Converter',description:'Convert PowerPoint presentations into PDF files.',kind:'Document Converter'},
+'excel-to-pdf':{name:'Excel to PDF Converter',description:'Convert Excel spreadsheets into PDF files.',kind:'Document Converter'},
+'pptx-to-images':{name:'PowerPoint to Images',description:'Render PowerPoint slides as PNG images.',kind:'Document Converter'},
+'html-to-pdf':{name:'HTML to PDF Converter',description:'Render HTML content as an A4 PDF.',kind:'Document Converter'},
+'docx-to-txt':{name:'DOCX to Text Converter',description:'Extract plain text from a Word DOCX document.',kind:'Document Converter'},
+'txt-to-pdf':{name:'Text to PDF Converter',description:'Create a PDF document from a text file.',kind:'Document Converter'},
+'csv-to-xlsx':{name:'CSV to Excel Converter',description:'Convert CSV data into an XLSX spreadsheet.',kind:'Data Converter'},
+'xlsx-to-csv':{name:'Excel to CSV Converter',description:'Convert an Excel worksheet into CSV text.',kind:'Data Converter'},
+'ai-summarize-pdf':{name:'Summarize PDF',description:'Create an extractive summary from a PDF document.',kind:'PDF AI'},
+'ask-pdf':{name:'Ask Questions About a PDF',description:'Find relevant passages in a PDF for a question.',kind:'PDF AI'},
+'mp3-to-wav':{name:'MP3 to WAV Converter',description:'Convert MP3 audio into WAV format.',kind:'Audio Converter'},
+'wav-to-mp3':{name:'WAV to MP3 Converter',description:'Convert WAV audio into MP3 format.',kind:'Audio Converter'},
+'mp3-to-ogg':{name:'MP3 to OGG Converter',description:'Convert MP3 audio into OGG format.',kind:'Audio Converter'},
+'audio-compress':{name:'Compress Audio',description:'Create a smaller MP3 audio file.',kind:'Audio'},
+'mp4-to-webm':{name:'MP4 to WebM Converter',description:'Convert MP4 video into WebM format.',kind:'Video Converter'},
+'webm-to-mp4':{name:'WebM to MP4 Converter',description:'Convert WebM video into MP4 format.',kind:'Video Converter'},
+'mp4-to-gif':{name:'MP4 to GIF Converter',description:'Create an animated GIF from an MP4 video.',kind:'Video Converter'},
+'video-compress':{name:'Compress Video',description:'Reduce MP4 video file size.',kind:'Video'},
+'video-trim':{name:'Trim Video',description:'Trim video using a start time and duration.',kind:'Video'},
+'video-to-mp3':{name:'Video to MP3 Converter',description:'Extract audio from a video into MP3.',kind:'Media Converter'},
+'compress':{name:'Compress Image',description:'Compress an image and return a smaller WebP file.',kind:'Image'},
+'resize':{name:'Resize Image',description:'Resize an image to the dimensions you choose.',kind:'Image'},
+'crop':{name:'Crop Image',description:'Crop an image using position and size values.',kind:'Image'},
+'jpg':{name:'Convert JPG PNG WebP',description:'Convert common image formats into JPG, PNG or WebP output.',kind:'Image Converter'},
+'png-to-pdf':{name:'PNG to PDF Converter',description:'Turn PNG images into a PDF document.',kind:'PDF Converter'},
+'bank-statement-tools':{name:'Bank Statement Extractor',description:'Extract dates and amounts from supported bank statement files.',kind:'Document Extraction'},
+'electricity-bill-tools':{name:'Electricity Bill Extractor',description:'Extract useful fields from supported electricity bill files.',kind:'Document Extraction'},
+'food-nutrition-files':{name:'Food Nutrition Extractor',description:'Extract nutrition values from supported food files.',kind:'Document Extraction'},
+'invoice-tools':{name:'Invoice Extractor',description:'Extract invoice fields from supported document files.',kind:'Document Extraction'},
+'zip-files':{name:'Create ZIP Files',description:'Bundle selected files into a ZIP archive.',kind:'File Utility'},
+'unzip-files':{name:'Unzip Files Online',description:'Extract files from a ZIP archive.',kind:'File Utility'},
+'base64':{name:'Base64 File Encoder',description:'Encode a file as Base64 text.',kind:'File Utility'}
+}
+
+export function generateStaticParams(){return Object.keys(tools).map(slug=>({slug}))}
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{const {slug}=await params;const t=tools[slug];if(!t)return {title:'Tool Not Found | File Tools ARK'};return {title:`${t.name} Free Online | File Tools ARK`,description:`${t.description} Use File Tools ARK online.`,alternates:{canonical:`${SITE}/tools/${slug}`},robots:{index:true,follow:true}}}
+
+export default async function ToolSEOPage({params}:{params:Promise<{slug:string}>}){const {slug}=await params;const t=tools[slug];if(!t)return <main style={{padding:40,fontFamily:'Arial'}}>Tool not found. <Link href="/">Return to File Tools ARK</Link></main>;
+const schema={"@context":"https://schema.org","@type":"SoftwareApplication",name:t.name,applicationCategory:'UtilitiesApplication',operatingSystem:'Web',url:`${SITE}/tools/${slug}`,description:t.description,offers:{"@type":"Offer",price:'0',priceCurrency:'USD'}};
+const crumb={"@context":"https://schema.org","@type":"BreadcrumbList",itemListElement:[{"@type":"ListItem",position:1,name:'File Tools ARK',item:SITE},{"@type":"ListItem",position:2,name:t.name,item:`${SITE}/tools/${slug}`}]};
+return <main className="seoPage"><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(crumb)}}/><nav><Link href="/">File Tools ARK</Link><span> / </span><span>{t.name}</span></nav><article><p className="seoKicker">{t.kind}</p><h1>{t.name}</h1><p className="seoLead">{t.description}</p><Link className="seoCTA" href={`/?tool=${slug}`}>Use {t.name} →</Link><h2>How to use {t.name}</h2><ol><li>Open the tool with the button above.</li><li>Choose the file or files required by the tool.</li><li>Set the available options, then start processing.</li><li>Download the resulting file when processing finishes.</li></ol><h2>About this online tool</h2><p>File Tools ARK provides a simple browser-based workspace for common PDF, document, image, audio and video file tasks. This page gives search engines a clear, dedicated URL for this specific tool while keeping the actual processing experience in the main ARK workspace.</p><h2>Frequently asked questions</h2><h3>Is {t.name} free?</h3><p>The File Tools ARK web interface is currently offered without a listed usage price for this tool.</p><h3>What does this tool do?</h3><p>{t.description}</p><h3>Where do I start?</h3><p>Use the button above to open the matching File Tools ARK workspace.</p><p><Link href="/">See all File Tools ARK tools →</Link></p></article></main>}
