@@ -420,3 +420,5 @@ button,a,input,textarea{font-family:inherit}
   html{scroll-behavior:auto}
   *{transition-duration:.01ms!important;animation-duration:.01ms!important}
 }
+
+.pagePicker{margin:18px 0;padding:18px;border:1px solid #dfe4ea;border-radius:16px;background:#f8fafc}.pagePickerHead{display:flex;justify-content:space-between;gap:12px;margin-bottom:12px}.pagePickerHead span{font-size:13px;color:#64748b}.pageGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}.pageChip{border:1px solid #d7dde5;background:#fff;border-radius:10px;padding:11px 8px;cursor:pointer;font:inherit;color:#334155}.pageChip:hover{border-color:#64748b}.pageChip.selected{background:#111827;color:#fff;border-color:#111827}.pagePicker small{display:block;margin-top:12px;color:#64748b}@media(max-width:600px){.pageGrid{grid-template-columns:repeat(3,1fr)}.pagePickerHead{align-items:flex-start;flex-direction:column}}
