@@ -86,9 +86,10 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
     if not width or not height:raise HTTPException(400,'Enter crop width and height.')
     if left+width>image.width or top+height>image.height:raise HTTPException(400,'Crop area is outside the image.')
     image=image.crop((left,top,left+width,top+height))
-   out=root/('converted.jpg' if a=='jpg' else 'processed.webp')
+   fmt=str(o.get('format') or 'jpg').lower();fmt=fmt if fmt in {'jpg','png','webp'} else 'jpg';out=root/('converted.'+fmt if a=='jpg' else 'processed.webp')
    if image.mode not in ('RGB','L'):image=image.convert('RGB')
    if a=='jpg':image.save(out,'JPEG',quality=q,optimize=True,progressive=True);mime='image/jpeg'
+   elif fmt=='png':image.save(out,'PNG',optimize=True);mime='image/png'
    else:image.save(out,'WEBP',quality=q,method=4);mime='image/webp'
    return res(out,root,mime,out.name)
   except HTTPException:raise
