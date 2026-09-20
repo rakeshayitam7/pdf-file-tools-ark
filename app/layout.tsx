@@ -10,6 +10,14 @@ export const metadata: Metadata = {
   applicationName: 'File Tools ARK',
   keywords: ['PDF tools','PDF converter','merge PDF','split PDF','compress PDF','PDF to Word','PDF to JPG','OCR PDF','file converter','image tools','audio tools','video tools'],
   alternates: { canonical: '/' },
+  icons: {
+    icon: [{ url: '/icon', type: 'image/png', sizes: '64x64' }],
+    shortcut: ['/icon'],
+    apple: [{ url: '/icon', type: 'image/png', sizes: '64x64' }],
+  },
   robots: { index: true, follow: true },
 }
-export default function RootLayout({ children }: { children: React.ReactNode }) { return <html lang="en"><body>{children}</body></html> }
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return <html lang="en"><body>{children}</body></html>
+}
