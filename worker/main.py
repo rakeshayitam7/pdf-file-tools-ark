@@ -192,7 +192,7 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
    listfile=root/'concat.txt'
    with listfile.open('w',encoding='utf8') as f:
     for x in ins:f.write("file "+str(x).replace("'","'\\''")+"\\n")
-   p=root/'merged.mp3';run(['ffmpeg','-y','-f','concat','-safe','0','-i',str(listfile),'-vn','-c:a','libmp3lame','-b:a','192k',str(p)])
+   p=root/'merged.mp3';run(['ffmpeg','-y',*[x for pair in [['-i',str(src)] for src in ins] for x in pair],'-filter_complex',f'concat=n={len(ins)}:v=0:a=1','-c:a','libmp3lame','-b:a','192k',str(p)])
    return res(p,root,'audio/mpeg',p.name)
   if a=='audio-cut':
    p=root/'cut.mp3';run(['ffmpeg','-y','-ss',start or '00:00:00','-i',str(src),'-t',duration or '00:00:10' ,'-vn','-c:a','libmp3lame','-b:a','192k',str(p)])
@@ -229,7 +229,7 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
    listfile=root/'videos.txt'
    with listfile.open('w',encoding='utf8') as f:
     for x in ins:f.write("file "+str(x).replace("'","'\\''")+"\\n")
-   p=root/'merged.mp4';run(['ffmpeg','-y','-f','concat','-safe','0','-i',str(listfile),'-c:v','libx264','-crf','23','-preset','fast','-c:a','aac','-b:a','128k',str(p)])
+   p=root/'merged.mp4';run(['ffmpeg','-y',*[x for pair in [['-i',str(src)] for src in ins] for x in pair],'-filter_complex',f'concat=n={len(ins)}:v=1:a=1','-c:v','libx264','-crf','23','-preset','fast','-c:a','aac','-b:a','128k',str(p)])
    return res(p,root,'video/mp4',p.name)
   if a=='video-speed':
    speed=max(.25,min(4.0,float(o.get('speed') or 1.0)))
