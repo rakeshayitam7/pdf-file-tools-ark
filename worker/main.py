@@ -154,13 +154,13 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
    p=root/'converted.pptx';r.save(p);d.close();return res(p,root,'application/vnd.openxmlformats-officedocument.presentationml.presentation',p.name)
   p=root/'compressed.pdf';run(['qpdf','--object-streams=generate','--compress-streams=y',str(src),str(p)]);return res(p,root,'application/pdf',p.name)
  if a in {'word-to-pdf','ppt-to-pdf','excel-to-pdf','pptx-to-images'}:
-   out=root/'office';out.mkdir();run(['libreoffice','--headless','--convert-to','pdf','--outdir',str(out),str(ins[0])]);pdf=next(out.glob('*.pdf'),None)
-   if not pdf:raise RuntimeError('Office conversion failed.')
-   if a=='pptx-to-images':
-    d=fitz.open(pdf);folder=root/'slides';folder.mkdir()
-    for i,x in enumerate(d):x.get_pixmap(matrix=fitz.Matrix(1.5,1.5),alpha=False).save(folder/f'slide-{i+1}.png')
-    d.close();z=Path(shutil.make_archive(str(root/'slides'),'zip',root_dir=folder));return res(z,root,'application/zip','slides.zip')
-   return res(pdf,root,'application/pdf','converted.pdf')
+  out=root/'office';out.mkdir();run(['libreoffice','--headless','--convert-to','pdf','--outdir',str(out),str(ins[0])]);pdf=next(out.glob('*.pdf'),None)
+  if not pdf:raise RuntimeError('Office conversion failed.')
+  if a=='pptx-to-images':
+   d=fitz.open(pdf);folder=root/'slides';folder.mkdir()
+   for i,x in enumerate(d):x.get_pixmap(matrix=fitz.Matrix(1.5,1.5),alpha=False).save(folder/f'slide-{i+1}.png')
+   d.close();z=Path(shutil.make_archive(str(root/'slides'),'zip',root_dir=folder));return res(z,root,'application/zip','slides.zip')
+  return res(pdf,root,'application/pdf','converted.pdf')
  if a=='html-to-pdf':
   if not html:raise HTTPException(400,'HTML content is required.')
   from playwright.async_api import async_playwright
