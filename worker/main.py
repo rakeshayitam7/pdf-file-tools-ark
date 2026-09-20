@@ -10,11 +10,11 @@ from fastapi import FastAPI,File,Form,Header,HTTPException,UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
-app=FastAPI(title='File Tools ARK Worker',version='2.2.0')
+app=FastAPI(title='File Tools ARK Worker',version='2.3.0')
 app.add_middleware(CORSMiddleware,allow_origins=['*'],allow_credentials=False,allow_methods=['*'],allow_headers=['*'])
 MAX_FILE_BYTES=int(os.getenv('MAX_FILE_BYTES',str(500*1024*1024))); PROCESS_TIMEOUT=int(os.getenv('PROCESS_TIMEOUT_SECONDS','5400')); KEY=os.getenv('FILE_WORKER_API_KEY','')
 IMAGE={'compress','resize','crop','jpg'}
-MEDIA={'mp3-to-wav','wav-to-mp3','mp3-to-ogg','audio-compress','mp4-to-webm','webm-to-mp4','mp4-to-gif','video-compress','video-trim','video-to-mp3'}
+MEDIA={'mp3-to-wav','wav-to-mp3','mp3-to-ogg','audio-compress','audio-cut','audio-merge','audio-speed','audio-volume','audio-reverse','audio-loop','mp4-to-webm','webm-to-mp4','mp4-to-gif','video-compress','video-trim','video-merge','video-speed','video-mute','video-resize','video-crop','video-to-mp3'}
 OFFICE={'word-to-pdf','ppt-to-pdf','excel-to-pdf','pptx-to-images'}
 EXTRACT={'bank-statement-tools','electricity-bill-tools','food-nutrition-files','invoice-tools'}
 PDF={'merge-pdf','rotate-pdf','page-numbers','watermark','sign-pdf','metadata','split-pdf','delete-pages','draw-pdf','organize-pdf','rearrange-pages','duplicate-pages','add-pages','crop-pdf','repair-pdf','flatten-pdf','optimize-pdf','linearize-pdf','protect-pdf','unlock-pdf','add-text-pdf','add-image-pdf','annotate-pdf','highlight-pdf','add-shapes-pdf','fill-pdf-forms','redact-pdf','remove-metadata','extract-images','extract-tables','compare-pdf','ai-summarize-pdf','ask-pdf'}
@@ -182,8 +182,75 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
  if a in EXTRACT:
   t=ptext(ins[0]) if ins[0].suffix.lower()=='.pdf' else ins[0].read_text(encoding='utf8',errors='ignore');name=a.replace('-tools','');p=root/f'{name}.json';p.write_text(json.dumps({'tool':name,'fields':fields(t),'text':t[:200000]},ensure_ascii=False,indent=2),encoding='utf8');return res(p,root,'application/json',p.name)
  if a in MEDIA:
-  src=ins[0];q=max(10,min(100,int(quality or 82)))
-  mp={'mp3-to-wav':('converted.wav',['-vn','-acodec','pcm_s16le']),'wav-to-mp3':('converted.mp3',['-vn','-codec:a','libmp3lame','-b:a','192k']),'mp3-to-ogg':('converted.ogg',['-vn','-codec:a','libvorbis','-q:a','5']),'audio-compress':('compressed.mp3',['-vn','-codec:a','libmp3lame','-b:a',f'{max(64,q*2)}k']),'mp4-to-webm':('converted.webm',['-c:v','libvpx-vp9','-crf','32','-b:v','0','-c:a','libopus']),'webm-to-mp4':('converted.mp4',['-c:v','libx264','-crf','23','-c:a','aac']),'mp4-to-gif':('converted.gif',['-vf','fps=10,scale=720:-1:flags=lanczos','-an']),'video-compress':('compressed.mp4',['-c:v','libx264','-crf','30','-preset','medium','-c:a','aac','-b:a','96k']),'video-trim':('trimmed.mp4',['-ss',start or '00:00:00','-t',duration or '00:00:10','-c','copy']),'video-to-mp3':('audio.mp3',['-vn','-codec:a','libmp3lame','-b:a','192k'])}
+  src=ins[0] if ins else None
+  try:q=max(10,min(100,int(quality or 82)))
+  except:q=82
+  if not src:raise HTTPException(400,'Choose a media file.')
+  if a=='audio-merge':
+   if len(ins)<2:raise HTTPException(400,'Choose at least two audio files.')
+   listfile=root/'concat.txt'
+   with listfile.open('w',encoding='utf8') as f:
+    for x in ins:f.write("file "+str(x).replace("'","'\\''")+"\\n")
+   p=root/'merged.mp3';run(['ffmpeg','-y','-f','concat','-safe','0','-i',str(listfile),'-vn','-c:a','libmp3lame','-b:a','192k',str(p)])
+   return res(p,root,'audio/mpeg',p.name)
+  if a=='audio-cut':
+   p=root/'cut.mp3';run(['ffmpeg','-y','-ss',start or '00:00:00','-i',str(src),'-t',duration or '00:00:10','vn','-c:a','libmp3lame','-b:a','192k',str(p)])
+   return res(p,root,'audio/mpeg',p.name)
+  if a=='audio-speed':
+   speed=max(.25,min(4.0,float(o.get('speed') or 1.0)))
+   filters=[]
+   remain=speed
+   while remain>2:filters.append('atempo=2');remain/=2
+   while remain<0.5:filters.append('atempo=0.5');remain/=0.5
+   filters.append(f'atempo={remain:.4f}')
+   p=root/'speed-changed.mp3';run(['ffmpeg','-y','-i',str(src),'-vn','-af',','.join(filters),'-c:a','libmp3lame','-b:a','192k',str(p)])
+   return res(p,root,'audio/mpeg',p.name)
+  if a=='audio-volume':
+   volume=max(.1,min(4.0,float(o.get('volume') or 1.0)))
+   p=root/'volume-changed.mp3';run(['ffmpeg','-y','-i',str(src),'-vn','-af',f'volume={volume}', '-c:a','libmp3lame','-b:a','192k',str(p)])
+   return res(p,root,'audio/mpeg',p.name)
+  if a=='audio-reverse':
+   p=root/'reversed.mp3';run(['ffmpeg','-y','-i',str(src),'-vn','-af','areverse','-c:a','libmp3lame','-b:a','192k',str(p)])
+   return res(p,root,'audio/mpeg',p.name)
+  if a=='audio-loop':
+   loops=max(1,min(60,int(o.get('loops') or 2)))-1
+   p=root/'looped.mp3';run(['ffmpeg','-y','-stream_loop',str(loops),'-i',str(src),'-vn','-c:a','libmp3lame','-b:a','192k',str(p)])
+   return res(p,root,'audio/mpeg',p.name)
+  if a=='audio-compress':
+   bitrate=max(64,min(160,int(o.get('bitrate') or 96)))
+   p=root/'compressed.mp3';run(['ffmpeg','-y','-i',str(src),'-vn','-c:a','libmp3lame','-b:a',f'{bitrate}k',str(p)])
+   return res(p,root,'audio/mpeg',p.name)
+  if a=='mp4-to-gif':
+   p=root/'converted.gif';run(['ffmpeg','-y','-i',str(src),'-vf','fps=10,scale=720:-1:flags=lanczos','an',str(p)])
+   return res(p,root,'image/gif',p.name)
+  if a=='video-merge':
+   if len(ins)<2:raise HTTPException(400,'Choose at least two video files.')
+   listfile=root/'videos.txt'
+   with listfile.open('w',encoding='utf8') as f:
+    for x in ins:f.write("file "+str(x).replace("'","'\\''")+"\\n")
+   p=root/'merged.mp4';run(['ffmpeg','-y','-f','concat','-safe','0','-i',str(listfile),'-c:v','libx264','-crf','23','-preset','fast','-c:a','aac','-b:a','128k',str(p)])
+   return res(p,root,'video/mp4',p.name)
+  if a=='video-speed':
+   speed=max(.25,min(4.0,float(o.get('speed') or 1.0)))
+   vf=f'setpts={1/speed:.6f}*PTS'
+   filters=[];remain=speed
+   while remain>2:filters.append('atempo=2');remain/=2
+   while remain<0.5:filters.append('atempo=0.5');remain/=0.5
+   filters.append(f'atempo={remain:.4f}')
+   p=root/'speed-changed.mp4';run(['ffmpeg','-y','-i',str(src),'-vf',vf,'-af',','.join(filters),'-c:v','libx264','-crf','23','-preset','fast','-c:a','aac','-b:a','128k',str(p)])
+   return res(p,root,'video/mp4',p.name)
+  if a=='video-mute':
+   p=root/'muted.mp4';run(['ffmpeg','-y','-i',str(src),'-an','-c:v','libx264','-crf','23','-preset','fast',str(p)])
+   return res(p,root,'video/mp4',p.name)
+  if a=='video-resize':
+   width=int(o.get('width') or 1280);height=int(o.get('height') or 720)
+   p=root/'resized.mp4';run(['ffmpeg','-y','-i',str(src),'-vf',f'scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2','-c:v','libx264','-crf','23','-preset','fast','-c:a','aac','-b:a','128k',str(p)])
+   return res(p,root,'video/mp4',p.name)
+  if a=='video-crop':
+   width=int(o.get('width') or 720);height=int(o.get('height') or 720);x=int(o.get('x') or 0);y=int(o.get('y') or 0)
+   p=root/'cropped.mp4';run(['ffmpeg','-y','-i',str(src),'-vf',f'crop={width}:{height}:{x}:{y}','-c:v','libx264','-crf','23','-preset','fast','-c:a','aac','-b:a','128k',str(p)])
+   return res(p,root,'video/mp4',p.name)
+  mp={'mp3-to-wav':('converted.wav',['-vn','-acodec','pcm_s16le']),'wav-to-mp3':('converted.mp3',['-vn','-codec:a','libmp3lame','-b:a','192k']),'mp3-to-ogg':('converted.ogg',['-vn','-codec:a','libvorbis','-q:a','5']),'mp4-to-webm':('converted.webm',['-c:v','libvpx-vp9','-crf','32','-b:v','0','-c:a','libopus']),'webm-to-mp4':('converted.mp4',['-c:v','libx264','-crf','23','-c:a','aac']),'video-compress':('compressed.mp4',['-c:v','libx264','-crf','30','-preset','medium','-c:a','aac','-b:a','96k']),'video-trim':('trimmed.mp4',['-ss',start or '00:00:00','-i',str(src),'-t',duration or '00:00:10','-c:v','libx264','-preset','fast','-crf','23','-c:a','aac','-b:a','128k']),'video-to-mp3':('audio.mp3',['-vn','-codec:a','libmp3lame','-b:a','192k'])}
   name,args=mp[a];p=root/name;run(['ffmpeg','-y','-i',str(src),*args,str(p)]);mime={'.mp3':'audio/mpeg','.wav':'audio/wav','.ogg':'audio/ogg','.mp4':'video/mp4','.webm':'video/webm','.gif':'image/gif'}.get(p.suffix,'application/octet-stream');return res(p,root,mime,p.name)
  if a in EXTRACT:raise HTTPException(422,'Extractor failed.')
  if a in PDF:
