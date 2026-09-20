@@ -56,6 +56,8 @@ def answer(t,q):
  qw=set(re.findall(r'\b[a-zA-Z0-9]{3,}\b',q.lower()));ss=[x.strip() for x in re.split(r'\n+|(?<=[.!?])\s+',t) if x.strip()]
  hits=sorted(((len(qw&set(re.findall(r'\b[a-zA-Z0-9]{3,}\b',x.lower()))),x) for x in ss),reverse=True)
  return '\n'.join(x for n,x in hits[:8] if n) or 'No matching passage was found.'
+@app.head('/')
+@app.head('/health')
 @app.get('/')
 @app.get('/health')
 def health():return {'ok':True,'service':'ark-file-worker','version':'2.2.0','max_file_bytes':MAX_FILE_BYTES,'timeout_seconds':PROCESS_TIMEOUT}
@@ -126,7 +128,16 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
    cw=csv.writer(f);cw.writerows(ws.iter_rows(values_only=True))
   wb.close();return res(p,root,'text/csv',p.name)
  if a=='ocr':
-  p=root/'ocr.txt';p.write_text(ocr(ins[0]),encoding='utf8');return res(p,root,'text/plain',p.name)
+  if ins[0].suffix.lower()=='.pdf':
+   src=fitz.open(ins[0]);out=fitz.open()
+   try:
+    for page in src:
+     pix=page.get_pixmap(matrix=fitz.Matrix(1.8,1.8),alpha=False);pdf=fitz.open('pdf',pix.pdfocr_tobytes(language='eng'));out.insert_pdf(pdf);pdf.close()
+    p=root/'ocr-searchable.pdf';savepdf(out,p);return res(p,root,'application/pdf',p.name)
+   finally:src.close();out.close()
+  pix=fitz.Pixmap(str(ins[0]));
+  if pix.alpha:pix=fitz.Pixmap(pix,0)
+  p=root/'ocr-searchable.pdf';p.write_bytes(pix.pdfocr_tobytes(language='eng'));return res(p,root,'application/pdf',p.name)
  if a in {'pdf-to-jpg','pdf-to-png','pdf-to-text','pdf-to-word','compress-pdf','pdf-to-excel','pdf-to-ppt'}:
   src=ins[0]
   if a=='pdf-to-text':p=root/'document.txt';p.write_text(ptext(src),encoding='utf8');return res(p,root,'text/plain',p.name)
