@@ -194,7 +194,7 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
    p=root/'merged.mp3';run(['ffmpeg','-y','-f','concat','-safe','0','-i',str(listfile),'-vn','-c:a','libmp3lame','-b:a','192k',str(p)])
    return res(p,root,'audio/mpeg',p.name)
   if a=='audio-cut':
-   p=root/'cut.mp3';run(['ffmpeg','-y','-ss',start or '00:00:00','-i',str(src),'-t',duration or '00:00:10','vn','-c:a','libmp3lame','-b:a','192k',str(p)])
+   p=root/'cut.mp3';run(['ffmpeg','-y','-ss',start or '00:00:00','-i',str(src),'-t',duration or '00:00:10' ,'-vn','-c:a','libmp3lame','-b:a','192k',str(p)])
    return res(p,root,'audio/mpeg',p.name)
   if a=='audio-speed':
    speed=max(.25,min(4.0,float(o.get('speed') or 1.0)))
@@ -221,7 +221,7 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
    p=root/'compressed.mp3';run(['ffmpeg','-y','-i',str(src),'-vn','-c:a','libmp3lame','-b:a',f'{bitrate}k',str(p)])
    return res(p,root,'audio/mpeg',p.name)
   if a=='mp4-to-gif':
-   p=root/'converted.gif';run(['ffmpeg','-y','-i',str(src),'-vf','fps=10,scale=720:-1:flags=lanczos','an',str(p)])
+   p=root/'converted.gif';run(['ffmpeg','-y','-i',str(src),'-vf','fps=10,scale=720:-1:flags=lanczos' ,'-an',str(p)])
    return res(p,root,'image/gif',p.name)
   if a=='video-merge':
    if len(ins)<2:raise HTTPException(400,'Choose at least two video files.')
