@@ -336,6 +336,25 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
    for p in d:
     for w in p.widgets() or []:w.update()
   elif a=='remove-metadata':d.set_metadata({})
+  elif a=='page-numbers':
+   fmt=str(o.get('format') or 'Page {page} of {total}')
+   size=float(o.get('size',10))
+   for idx,page in enumerate(d,1):
+    label=fmt.replace('{page}',str(idx)).replace('{total}',str(len(d)))
+    page.insert_text((page.rect.width/2-25,page.rect.height-24),label,fontsize=size,fontname='helv',color=(.35,.35,.35))
+  elif a=='watermark':
+   label=str(o.get('text') or 'File Tools ARK')
+   size=float(o.get('size',28))
+   for page in d:
+    r=page.rect
+    page.insert_text((r.width/2-80,r.height/2),label,fontsize=size,fontname='helv',color=(.65,.65,.65),overlay=True)
+  elif a=='sign-pdf':
+   label=str(signature or o.get('text') or 'Signed')
+   page_no=max(1,int(o.get('page',1)));x=float(o.get('x',45));y=float(o.get('y',55));size=float(o.get('size',18))
+   if page_no>len(d):raise HTTPException(400,f'Page number is outside 1-{len(d)}.')
+   d[page_no-1].insert_text((x,y),label,fontsize=size,fontname='hebo',color=(.1,.2,.5))
+  elif a=='metadata':
+   p=root/'metadata.json';p.write_text(json.dumps(d.metadata,indent=2,ensure_ascii=False),encoding='utf8');d.close();return res(p,root,'application/json',p.name)
   elif a=='add-text-pdf':
    text=str(o.get('text') or signature or 'File Tools ARK');page_no=max(1,int(o.get('page',1)));x=float(o.get('x',45));y=float(o.get('y',55));size=float(o.get('size',14))
    if page_no>len(d):raise HTTPException(400,f'Page number is outside 1-{len(d)}.')
