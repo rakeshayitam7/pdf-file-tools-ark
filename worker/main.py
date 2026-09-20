@@ -6,10 +6,12 @@ from PIL import Image
 from docx import Document
 from openpyxl import Workbook
 from fastapi import FastAPI,File,Form,Header,HTTPException,UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
-app=FastAPI(title='File Tools ARK Worker',version='2.0.0')
-MAX_FILE_BYTES=int(os.getenv('MAX_FILE_BYTES',str(100*1024*1024))); KEY=os.getenv('FILE_WORKER_API_KEY','')
+app=FastAPI(title='File Tools ARK Worker',version='2.1.0')
+app.add_middleware(CORSMiddleware,allow_origins=['*'],allow_credentials=False,allow_methods=['*'],allow_headers=['*'])
+MAX_FILE_BYTES=int(os.getenv('MAX_FILE_BYTES',str(500*1024*1024))); KEY=os.getenv('FILE_WORKER_API_KEY','')
 MEDIA={'mp3-to-wav','wav-to-mp3','mp3-to-ogg','audio-compress','mp4-to-webm','webm-to-mp4','mp4-to-gif','video-compress','video-trim','video-to-mp3'}
 OFFICE={'word-to-pdf','ppt-to-pdf','excel-to-pdf','pptx-to-images'}
 EXTRACT={'bank-statement-tools','electricity-bill-tools','food-nutrition-files','invoice-tools'}
@@ -53,7 +55,7 @@ def answer(t,q):
  hits=sorted(((len(qw&set(re.findall(r'\b[a-zA-Z0-9]{3,}\b',x.lower()))),x) for x in ss),reverse=True)
  return '\n'.join(x for n,x in hits[:8] if n) or 'No matching passage was found.'
 @app.get('/health')
-def health():return {'ok':True,'service':'ark-file-worker','version':'2.0.0'}
+def health():return {'ok':True,'service':'ark-file-worker','version':'2.1.0','max_file_bytes':MAX_FILE_BYTES}
 @app.post('/process')
 async def process(action:Annotated[str,Form()],files:Annotated[list[UploadFile],File()]=[],signature:Annotated[str|None,Form()]=None,start:Annotated[str|None,Form()]=None,duration:Annotated[str|None,Form()]=None,quality:Annotated[str|None,Form()]=None,html:Annotated[str|None,Form()]=None,options:Annotated[str|None,Form()]=None,x_ark_worker_key:Annotated[str|None,Header()]=None):
  if KEY and x_ark_worker_key!=KEY:raise HTTPException(401,'Unauthorized worker request.')
