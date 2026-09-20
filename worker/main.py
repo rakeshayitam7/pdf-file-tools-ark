@@ -1,6 +1,7 @@
-import base64,difflib,json,os,re,shutil,subprocess,tempfile,zipfile
+import base64,csv,difflib,json,os,re,shutil,subprocess,tempfile,zipfile
 from pathlib import Path
 from typing import Annotated
+from io import BytesIO
 import fitz,pytesseract
 from PIL import Image
 from docx import Document
@@ -11,13 +12,14 @@ from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 app=FastAPI(title='File Tools ARK Worker',version='2.1.0')
 app.add_middleware(CORSMiddleware,allow_origins=['*'],allow_credentials=False,allow_methods=['*'],allow_headers=['*'])
-MAX_FILE_BYTES=int(os.getenv('MAX_FILE_BYTES',str(500*1024*1024))); KEY=os.getenv('FILE_WORKER_API_KEY','')
+MAX_FILE_BYTES=int(os.getenv('MAX_FILE_BYTES',str(500*1024*1024))); PROCESS_TIMEOUT=int(os.getenv('PROCESS_TIMEOUT_SECONDS','5400')); KEY=os.getenv('FILE_WORKER_API_KEY','')
+IMAGE={'compress','resize','crop','jpg'}
 MEDIA={'mp3-to-wav','wav-to-mp3','mp3-to-ogg','audio-compress','mp4-to-webm','webm-to-mp4','mp4-to-gif','video-compress','video-trim','video-to-mp3'}
 OFFICE={'word-to-pdf','ppt-to-pdf','excel-to-pdf','pptx-to-images'}
 EXTRACT={'bank-statement-tools','electricity-bill-tools','food-nutrition-files','invoice-tools'}
-PDF={'split-pdf','delete-pages','draw-pdf','organize-pdf','rearrange-pages','duplicate-pages','add-pages','crop-pdf','repair-pdf','flatten-pdf','optimize-pdf','linearize-pdf','protect-pdf','unlock-pdf','add-text-pdf','add-image-pdf','annotate-pdf','highlight-pdf','add-shapes-pdf','fill-pdf-forms','redact-pdf','remove-metadata','extract-images','extract-tables','compare-pdf','ai-summarize-pdf','ask-pdf'}
+PDF={'merge-pdf','rotate-pdf','page-numbers','watermark','sign-pdf','metadata','split-pdf','delete-pages','draw-pdf','organize-pdf','rearrange-pages','duplicate-pages','add-pages','crop-pdf','repair-pdf','flatten-pdf','optimize-pdf','linearize-pdf','protect-pdf','unlock-pdf','add-text-pdf','add-image-pdf','annotate-pdf','highlight-pdf','add-shapes-pdf','fill-pdf-forms','redact-pdf','remove-metadata','extract-images','extract-tables','compare-pdf','ai-summarize-pdf','ask-pdf'}
 def run(c):
- p=subprocess.run(c,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+ p=subprocess.run(c,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,timeout=PROCESS_TIMEOUT)
  if p.returncode: raise RuntimeError(p.stderr[-3500:] or 'Command failed')
 async def save(u,root,i):
  s=Path(u.filename or '').suffix.lower();p=root/f'in{i}{s}';n=0
@@ -54,8 +56,9 @@ def answer(t,q):
  qw=set(re.findall(r'\b[a-zA-Z0-9]{3,}\b',q.lower()));ss=[x.strip() for x in re.split(r'\n+|(?<=[.!?])\s+',t) if x.strip()]
  hits=sorted(((len(qw&set(re.findall(r'\b[a-zA-Z0-9]{3,}\b',x.lower()))),x) for x in ss),reverse=True)
  return '\n'.join(x for n,x in hits[:8] if n) or 'No matching passage was found.'
+@app.get('/')
 @app.get('/health')
-def health():return {'ok':True,'service':'ark-file-worker','version':'2.1.0','max_file_bytes':MAX_FILE_BYTES}
+def health():return {'ok':True,'service':'ark-file-worker','version':'2.2.0','max_file_bytes':MAX_FILE_BYTES,'timeout_seconds':PROCESS_TIMEOUT}
 @app.post('/process')
 async def process(action:Annotated[str,Form()],files:Annotated[list[UploadFile],File()]=[],signature:Annotated[str|None,Form()]=None,start:Annotated[str|None,Form()]=None,duration:Annotated[str|None,Form()]=None,quality:Annotated[str|None,Form()]=None,html:Annotated[str|None,Form()]=None,options:Annotated[str|None,Form()]=None,x_ark_worker_key:Annotated[str|None,Header()]=None):
  if KEY and x_ark_worker_key!=KEY:raise HTTPException(401,'Unauthorized worker request.')
@@ -66,6 +69,62 @@ async def process(action:Annotated[str,Form()],files:Annotated[list[UploadFile],
 async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
  try:o=json.loads(options or '{}')
  except:o={'text':options or ''}
+ if a in IMAGE:
+  if not ins: raise HTTPException(400,'Choose an image.')
+  try:q=max(1,min(100,int(quality or o.get('quality') or 82)))
+  except:q=82
+  try:
+   image=Image.open(ins[0])
+   if a=='resize':
+    width=int(o.get('width') or 0);height=int(o.get('height') or 0)
+    if not width and not height:raise HTTPException(400,'Enter width or height.')
+    image.thumbnail((width or image.width,height or image.height),Image.Resampling.LANCZOS)
+   elif a=='crop':
+    width=int(o.get('width') or 0);height=int(o.get('height') or 0);left=max(0,int(o.get('left') or 0));top=max(0,int(o.get('top') or 0))
+    if not width or not height:raise HTTPException(400,'Enter crop width and height.')
+    if left+width>image.width or top+height>image.height:raise HTTPException(400,'Crop area is outside the image.')
+    image=image.crop((left,top,left+width,top+height))
+   out=root/('converted.jpg' if a=='jpg' else 'processed.webp')
+   if image.mode not in ('RGB','L'):image=image.convert('RGB')
+   if a=='jpg':image.save(out,'JPEG',quality=q,optimize=True,progressive=True);mime='image/jpeg'
+   else:image.save(out,'WEBP',quality=q,method=4);mime='image/webp'
+   return res(out,root,mime,out.name)
+  except HTTPException:raise
+  except Exception as e:raise HTTPException(400,f'Image processing failed: {e}')
+ if a=='merge-pdf':
+  out=fitz.open()
+  for src in ins:
+   if src.suffix.lower()!='.pdf':raise HTTPException(400,'Merge accepts PDF files only.')
+   d=fitz.open(src);out.insert_pdf(d);d.close()
+  p=root/'merged.pdf';savepdf(out,p);out.close();return res(p,root,'application/pdf',p.name)
+ if a in {'jpg-to-pdf','png-to-pdf'}:
+  out=fitz.open();expected='.jpg' if a=='jpg-to-pdf' else '.png'
+  for src in ins:
+   if src.suffix.lower() not in ({'.jpg','.jpeg'} if expected=='.jpg' else {'.png'}):raise HTTPException(400,f'Unsupported image for {a}.')
+   im=Image.open(src).convert('RGB');bio=BytesIO();im.save(bio,'JPEG' if expected=='.jpg' else 'PNG');pix=fitz.Pixmap(fitz.csRGB,bio.getvalue());page=out.new_page(width=pix.width,height=pix.height);page.insert_image(page.rect,pixmap=pix)
+  p=root/('images-from-jpg.pdf' if a=='jpg-to-pdf' else 'images-from-png.pdf');savepdf(out,p);out.close();return res(p,root,'application/pdf',p.name)
+ if a=='txt-to-pdf':
+  text=ins[0].read_text(encoding='utf8',errors='replace');out=fitz.open();font=fitz.Font('helv');margin=45;size=10;line_h=14;page=out.new_page();y=page.rect.height-margin
+  for line in text.replace('\\r','').split('\\n'):
+   chunks=[line[i:i+105] for i in range(0,max(len(line),1),105)] or ['']
+   for chunk in chunks:
+    if y<margin:page=out.new_page();y=page.rect.height-margin
+    page.insert_text((margin,y),chunk,fontname='helv',fontsize=size);y-=line_h
+  p=root/'text-document.pdf';savepdf(out,p);out.close();return res(p,root,'application/pdf',p.name)
+ if a=='docx-to-txt':
+  d=Document(str(ins[0]));p=root/'document.txt';p.write_text('\\n'.join(x.text for x in d.paragraphs),encoding='utf8');return res(p,root,'text/plain',p.name)
+ if a=='csv-to-xlsx':
+  out=Workbook();s=out.active
+  with ins[0].open(newline='',encoding='utf8-sig',errors='replace') as f:
+   for r,row in enumerate(csv.reader(f),1):
+    for c,val in enumerate(row,1):s.cell(r,c,val)
+  p=root/'converted.xlsx';out.save(p);return res(p,root,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',p.name)
+ if a=='xlsx-to-csv':
+  from openpyxl import load_workbook
+  wb=load_workbook(ins[0],read_only=True,data_only=True);ws=wb.active;p=root/'converted.csv'
+  with p.open('w',newline='',encoding='utf8') as f:
+   cw=csv.writer(f);cw.writerows(ws.iter_rows(values_only=True))
+  wb.close();return res(p,root,'text/csv',p.name)
  if a=='ocr':
   p=root/'ocr.txt';p.write_text(ocr(ins[0]),encoding='utf8');return res(p,root,'text/plain',p.name)
  if a in {'pdf-to-jpg','pdf-to-png','pdf-to-text','pdf-to-word','compress-pdf','pdf-to-excel','pdf-to-ppt'}:
@@ -94,7 +153,7 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
     im=root/f'slide{i}.png';x.get_pixmap(matrix=fitz.Matrix(1.4,1.4),alpha=False).save(im);r.slides.add_slide(blank).shapes.add_picture(str(im),0,0,width=r.slide_width,height=r.slide_height)
    p=root/'converted.pptx';r.save(p);d.close();return res(p,root,'application/vnd.openxmlformats-officedocument.presentationml.presentation',p.name)
   p=root/'compressed.pdf';run(['qpdf','--object-streams=generate','--compress-streams=y',str(src),str(p)]);return res(p,root,'application/pdf',p.name)
- if a in OFFICE:
+if a in {'word-to-pdf','ppt-to-pdf','excel-to-pdf','pptx-to-images'}:
   out=root/'office';out.mkdir();run(['libreoffice','--headless','--convert-to','pdf','--outdir',str(out),str(ins[0])]);pdf=next(out.glob('*.pdf'),None)
   if not pdf:raise RuntimeError('Office conversion failed.')
   if a=='pptx-to-images':
