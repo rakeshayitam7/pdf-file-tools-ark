@@ -190,7 +190,7 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
   if not src:raise HTTPException(400,'Choose a media file.')
   if a=='audio-merge':
    if len(ins)<2:raise HTTPException(400,'Choose at least two audio files.')
-   p=root/'merged.mp3';run(['ffmpeg','-y',*[x for pair in [['-i',str(src)] for src in ins] for x in pair],'-filter_complex',f'concat=n={len(ins)}:v=0:a=1','-c:a','libmp3lame','-b:a','192k',str(p)])
+   p=root/'merged.mp3';labels=''.join(f'[{i}:a:0]' for i in range(len(ins)));run(['ffmpeg','-y',*[x for pair in [['-i',str(src)] for src in ins] for x in pair],'-filter_complex',f'{labels}concat=n={len(ins)}:v=0:a=1[out]','-map','[out]','-c:a','libmp3lame','-b:a','192k',str(p)])
    return res(p,root,'audio/mpeg',p.name)
   if a=='audio-cut':
    p=root/'cut.mp3';run(['ffmpeg','-y','-ss',start or '00:00:00','-i',str(src),'-t',duration or '00:00:10' ,'-vn','-c:a','libmp3lame','-b:a','192k',str(p)])
@@ -224,7 +224,7 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
    return res(p,root,'image/gif',p.name)
   if a=='video-merge':
    if len(ins)<2:raise HTTPException(400,'Choose at least two video files.')
-   p=root/'merged.mp4';run(['ffmpeg','-y',*[x for pair in [['-i',str(src)] for src in ins] for x in pair],'-filter_complex',f'concat=n={len(ins)}:v=1:a=1','-c:v','libx264','-crf','23','-preset','fast','-c:a','aac','-b:a','128k',str(p)])
+   p=root/'merged.mp4';labels=''.join(f'[{i}:v:0][{i}:a:0]' for i in range(len(ins)));run(['ffmpeg','-y',*[x for pair in [['-i',str(src)] for src in ins] for x in pair],'-filter_complex',f'{labels}concat=n={len(ins)}:v=1:a=1[v][a]','-map','[v]','-map','[a]','-c:v','libx264','-crf','23','-preset','fast','-c:a','aac','-b:a','128k',str(p)])
    return res(p,root,'video/mp4',p.name)
   if a=='video-speed':
    speed=max(.25,min(4.0,float(o.get('speed') or 1.0)))
@@ -298,7 +298,7 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
   if a=='extract-pages':
    raw=str(o.get('pages') or o.get('order') or o.get('text') or '').strip()
    if not raw:raise HTTPException(400,'Enter page numbers such as 1,3,5.')
-   try:ids=sorted(set(int(x)-1 for x in raw.split(',') if x.strip()))
+   try:ids=[int(x)-1 for x in raw.split(',') if x.strip()]
    except:raise HTTPException(400,'Page numbers must be comma-separated numbers.')
    if not ids or any(i<0 or i>=len(d) for i in ids):raise HTTPException(400,f'Page number is outside the PDF range 1-{len(d)}.')
    out=fitz.open()
