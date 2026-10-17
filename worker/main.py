@@ -95,6 +95,7 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
   except HTTPException:raise
   except Exception as e:raise HTTPException(400,f'Image processing failed: {e}')
  if a=='merge-pdf':
+  if len(ins)<2:raise HTTPException(400,'Choose at least two PDFs to merge.')
   out=fitz.open()
   for src in ins:
    if src.suffix.lower()!='.pdf':raise HTTPException(400,'Merge accepts PDF files only.')
@@ -108,14 +109,14 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
   p=root/('images-from-jpg.pdf' if a=='jpg-to-pdf' else 'images-from-png.pdf');savepdf(out,p);out.close();return res(p,root,'application/pdf',p.name)
  if a=='txt-to-pdf':
   text=ins[0].read_text(encoding='utf8',errors='replace');out=fitz.open();font=fitz.Font('helv');margin=45;size=10;line_h=14;page=out.new_page();y=page.rect.height-margin
-  for line in text.replace('\\r','').split('\\n'):
+  for line in text.replace('\r','').split('\n'):
    chunks=[line[i:i+105] for i in range(0,max(len(line),1),105)] or ['']
    for chunk in chunks:
     if y<margin:page=out.new_page();y=page.rect.height-margin
     page.insert_text((margin,y),chunk,fontname='helv',fontsize=size);y-=line_h
   p=root/'text-document.pdf';savepdf(out,p);out.close();return res(p,root,'application/pdf',p.name)
  if a=='docx-to-txt':
-  d=Document(str(ins[0]));p=root/'document.txt';p.write_text('\\n'.join(x.text for x in d.paragraphs),encoding='utf8');return res(p,root,'text/plain',p.name)
+  d=Document(str(ins[0]));p=root/'document.txt';p.write_text('\n'.join(x.text for x in d.paragraphs),encoding='utf8');return res(p,root,'text/plain',p.name)
  if a=='csv-to-xlsx':
   out=Workbook();s=out.active
   with ins[0].open(newline='',encoding='utf8-sig',errors='replace') as f:
@@ -189,9 +190,6 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
   if not src:raise HTTPException(400,'Choose a media file.')
   if a=='audio-merge':
    if len(ins)<2:raise HTTPException(400,'Choose at least two audio files.')
-   listfile=root/'concat.txt'
-   with listfile.open('w',encoding='utf8') as f:
-    for x in ins:f.write("file "+str(x).replace("'","'\\''")+"\\n")
    p=root/'merged.mp3';run(['ffmpeg','-y',*[x for pair in [['-i',str(src)] for src in ins] for x in pair],'-filter_complex',f'concat=n={len(ins)}:v=0:a=1','-c:a','libmp3lame','-b:a','192k',str(p)])
    return res(p,root,'audio/mpeg',p.name)
   if a=='audio-cut':
@@ -226,9 +224,6 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
    return res(p,root,'image/gif',p.name)
   if a=='video-merge':
    if len(ins)<2:raise HTTPException(400,'Choose at least two video files.')
-   listfile=root/'videos.txt'
-   with listfile.open('w',encoding='utf8') as f:
-    for x in ins:f.write("file "+str(x).replace("'","'\\''")+"\\n")
    p=root/'merged.mp4';run(['ffmpeg','-y',*[x for pair in [['-i',str(src)] for src in ins] for x in pair],'-filter_complex',f'concat=n={len(ins)}:v=1:a=1','-c:v','libx264','-crf','23','-preset','fast','-c:a','aac','-b:a','128k',str(p)])
    return res(p,root,'video/mp4',p.name)
   if a=='video-speed':
@@ -251,7 +246,7 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
    width=int(o.get('width') or 720);height=int(o.get('height') or 720);x=int(o.get('x') or 0);y=int(o.get('y') or 0)
    p=root/'cropped.mp4';run(['ffmpeg','-y','-i',str(src),'-vf',f'crop={width}:{height}:{x}:{y}','-c:v','libx264','-crf','23','-preset','fast','-c:a','aac','-b:a','128k',str(p)])
    return res(p,root,'video/mp4',p.name)
-  mp={'mp3-to-wav':('converted.wav',['-vn','-acodec','pcm_s16le']),'wav-to-mp3':('converted.mp3',['-vn','-codec:a','libmp3lame','-b:a','192k']),'mp3-to-ogg':('converted.ogg',['-vn','-codec:a','libvorbis','-q:a','5']),'mp4-to-webm':('converted.webm',['-c:v','libvpx-vp9','-crf','32','-b:v','0','-c:a','libopus']),'webm-to-mp4':('converted.mp4',['-c:v','libx264','-crf','23','-c:a','aac']),'video-compress':('compressed.mp4',['-c:v','libx264','-crf','30','-preset','medium','-c:a','aac','-b:a','96k']),'video-trim':('trimmed.mp4',['-ss',start or '00:00:00','-i',str(src),'-t',duration or '00:00:10','-c:v','libx264','-preset','fast','-crf','23','-c:a','aac','-b:a','128k']),'video-to-mp3':('audio.mp3',['-vn','-codec:a','libmp3lame','-b:a','192k'])}
+  mp={'mp3-to-wav':('converted.wav',['-vn','-acodec','pcm_s16le']),'wav-to-mp3':('converted.mp3',['-vn','-codec:a','libmp3lame','-b:a','192k']),'mp3-to-ogg':('converted.ogg',['-vn','-codec:a','libvorbis','-q:a','5']),'mp4-to-webm':('converted.webm',['-c:v','libvpx-vp9','-crf','32','-b:v','0','-c:a','libopus']),'webm-to-mp4':('converted.mp4',['-c:v','libx264','-crf','23','-c:a','aac']),'video-compress':('compressed.mp4',['-c:v','libx264','-crf','30','-preset','medium','-c:a','aac','-b:a','96k']),'video-trim':('trimmed.mp4',['-ss',start or '00:00:00','-t',duration or '00:00:10','-c:v','libx264','-preset','fast','-crf','23','-c:a','aac','-b:a','128k']),'video-to-mp3':('audio.mp3',['-vn','-codec:a','libmp3lame','-b:a','192k'])}
   name,args=mp[a];p=root/name;run(['ffmpeg','-y','-i',str(src),*args,str(p)]);mime={'.mp3':'audio/mpeg','.wav':'audio/wav','.ogg':'audio/ogg','.mp4':'video/mp4','.webm':'video/webm','.gif':'image/gif'}.get(p.suffix,'application/octet-stream');return res(p,root,mime,p.name)
  if a in EXTRACT:raise HTTPException(422,'Extractor failed.')
  if a in PDF:
@@ -279,10 +274,10 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
    if a=='linearize-pdf':run(['qpdf','--linearize',str(ins[0]),str(p)])
    elif a=='repair-pdf':run(['qpdf','--replace-input',str(ins[0])]);shutil.copy2(ins[0],p)
    elif a=='protect-pdf':
-    pw=str(o.get('password') or signature or '').strip()
+    pw=str(o.get('password') or o.get('text') or signature or '').strip()
     if not pw:raise HTTPException(400,'Enter a password.')
     run(['qpdf','--encrypt',pw,pw,'256','--',str(ins[0]),str(p)])
-   elif a=='unlock-pdf':run(['qpdf','--password='+str(o.get('password') or signature or ''),'--decrypt',str(ins[0]),str(p)])
+   elif a=='unlock-pdf':run(['qpdf','--password='+str(o.get('password') or o.get('text') or signature or ''),'--decrypt',str(ins[0]),str(p)])
    else:savepdf(fitz.open(ins[0]),p)
    return res(p,root,'application/pdf',p.name)
   d=fitz.open(ins[0])
@@ -301,7 +296,7 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
     one=fitz.open();one.insert_pdf(d,from_page=i,to_page=i);savepdf(one,folder/f'page-{i+1}.pdf');one.close()
    d.close();z=Path(shutil.make_archive(str(root/'split-pages'),'zip',root_dir=folder));return res(z,root,'application/zip','split-pages.zip')
   if a=='extract-pages':
-   raw=str(o.get('pages') or o.get('order') or '').strip()
+   raw=str(o.get('pages') or o.get('order') or o.get('text') or '').strip()
    if not raw:raise HTTPException(400,'Enter page numbers such as 1,3,5.')
    try:ids=sorted(set(int(x)-1 for x in raw.split(',') if x.strip()))
    except:raise HTTPException(400,'Page numbers must be comma-separated numbers.')
@@ -324,10 +319,12 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
      except:raise HTTPException(400,'Page numbers must be comma-separated numbers.')
      if any(i<0 or i>=len(d) for i in dup):raise HTTPException(400,f'Page number is outside the PDF range 1-{len(d)}.')
      ids=ids+dup
-    elif ids:ids=ids+[ids[0]]
+    else:raise HTTPException(400,'Enter page numbers such as 1,3,5.')
    out=fitz.open()
    for i in ids:out.insert_pdf(d,from_page=i,to_page=i)
-   if a=='add-pages' and len(ins)>1:out.insert_pdf(fitz.open(ins[1]))
+   if a=='add-pages':
+    if len(ins)<2:raise HTTPException(400,'Choose the original PDF and at least one PDF to append.')
+    extra=fitz.open(ins[1]);out.insert_pdf(extra);extra.close()
    p=root/f'{a}.pdf';savepdf(out,p);out.close();d.close();return res(p,root,'application/pdf',p.name)
   if a=='crop-pdf':
    m=float(o.get('margin',24));
