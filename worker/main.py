@@ -313,7 +313,7 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
      except:raise HTTPException(400,'Page order must be comma-separated numbers.')
      if not ids or any(i<0 or i>=len(d) for i in ids):raise HTTPException(400,f'Page order contains a page outside 1-{len(d)}.')
    if a=='duplicate-pages':
-    raw=str(o.get('pages') or o.get('order') or '').strip()
+    raw=str(o.get('pages') or o.get('order') or o.get('text') or '').strip()
     if raw:
      try:dup=[int(x)-1 for x in raw.split(',') if x.strip()]
      except:raise HTTPException(400,'Page numbers must be comma-separated numbers.')
@@ -402,8 +402,14 @@ async def dispatch(a,ins,root,signature,start,duration,quality,html,options):
    for i,x in enumerate(ins):z.write(x,f'file-{i+1}{x.suffix}')
   return res(p,root,'application/zip',p.name)
  if a=='unzip-files':
-  f=root/'unzipped';f.mkdir();
-  with zipfile.ZipFile(ins[0]) as z:z.extractall(f)
+  f=root/'unzipped';f.mkdir()
+  with zipfile.ZipFile(ins[0]) as z:
+   for info in z.infolist():
+    target=(f/info.filename).resolve()
+    if not target.is_relative_to(f.resolve()):raise HTTPException(400,'ZIP contains an unsafe file path.')
+    if info.is_dir():target.mkdir(parents=True,exist_ok=True);continue
+    target.parent.mkdir(parents=True,exist_ok=True)
+    with z.open(info) as src,target.open('wb') as dst:shutil.copyfileobj(src,dst)
   p=Path(shutil.make_archive(str(root/'unzipped-files'),'zip',root_dir=f));return res(p,root,'application/zip',p.name)
  if a=='base64':p=root/'base64.txt';p.write_text(base64.b64encode(ins[0].read_bytes()).decode(),encoding='ascii');return res(p,root,'text/plain',p.name)
  raise HTTPException(422,f'Worker action not implemented: {a}')
